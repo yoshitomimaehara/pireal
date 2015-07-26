@@ -1,1 +1,1 @@
-Copyright &copy; 2015 - [Pireal]({{ site.source_link }}) by [Gabriel Acosta](https://twitter.com/_alfacentauri)
+Copyright &copy; 2015 - [Pireal]({{ site.source_link }}){:target="_blank"} by [Gabriel Acosta](https://twitter.com/_alfacentauri){:target="_blank"}
