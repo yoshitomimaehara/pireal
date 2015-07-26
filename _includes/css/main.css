@@ -162,6 +162,13 @@ nav ul li:hover, nav ul li.active {
   padding-top: 0;
 }
 
+.title {
+    margin-top:-100px;
+    display: inline-block;
+    vertical-align: top;
+    margin-top:0px;
+    float: left;
+}
 
 /* ----- sections/articles ----- */
 
