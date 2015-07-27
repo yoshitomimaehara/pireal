@@ -1,7 +1,7 @@
 ---
 title: "contribute"
-bg: black
-color: white
+bg: white
+color: black
 fa-icon:
 ---
 
