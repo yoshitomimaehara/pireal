@@ -141,7 +141,7 @@ nav ul li {
   line-height:normal;
   letter-spacing:normal;
   text-transform:uppercase;
-  min-width:110px;
+  min-width:200px;
   line-height:60px;
   margin:0;
 }
@@ -160,14 +160,6 @@ nav ul li a:hover {
 nav ul li:hover, nav ul li.active {
   border-top-width: {{navborder_active}}px;
   padding-top: 0;
-}
-
-.title {
-    margin-top:-100px;
-    display: inline-block;
-    vertical-align: top;
-    margin-top:0px;
-    float: left;
 }
 
 /* ----- sections/articles ----- */
