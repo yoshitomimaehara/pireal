@@ -1,0 +1,43 @@
+body {
+    padding-top: 50px;
+    background-color: #f9f9f9;
+}
+
+.navbar-custom {
+    background-color: #6389A8;
+}
+
+.navbar-custom a {
+    color: #E3E3E3;
+}
+
+ul.nav > li > a:hover {
+    background-color: #6389A8;
+    text-decoration: underline;
+}
+
+footer {
+    background: #e3e3e3;
+    padding: 10px 0 5px 0;
+    overflow: hidden;
+}
+
+footer a:hover {
+    color: #6389A8;
+    text-decoration: underline;
+}
+
+footer i,
+footer a,
+.text-muted {
+    color: #6389A8;
+}
+
+.pi {
+    color: #e3e3e3;
+    font-size: 42px;
+}
+
+h4 {
+    color: gray;
+}
