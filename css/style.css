@@ -4,9 +4,22 @@ body {
     background-color: white;
 }
 
-h4 {
+.marketing .col-lg-4 p {
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+.marketing .col-lg-4 {
+    text-align: center;
+}
+
+h4, h3, h2, h1 {
     font-family: 'Source Sans Pro';
     font-weight: lighter;
+}
+
+.spacing-row {
+    line-height: 43px;
 }
 
 .navbar-custom {
@@ -46,7 +59,6 @@ footer a,
 
 h4 {
     color: gray;
-
 }
 
 .social .fa-github:hover {
@@ -73,6 +85,10 @@ h4 {
     color: #e3e3e3;
 }
 
+.heart-custom {
+    color: #c98c81;
+    font-size: 18px;
+}
 /* Sweep To Top */
 .hvr-sweep-to-top {
   display: inline-block;
