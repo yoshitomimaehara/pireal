@@ -1,7 +1,7 @@
 body {
     font-family: 'Source Sans Pro';
     padding-top: 50px;
-    background-color: white;
+    background-color: #eeeeee;
 }
 
 .marketing .col-lg-4 p {
@@ -23,33 +23,33 @@ h4, h3, h2, h1 {
 }
 
 .navbar-custom {
-    background-color: #6389A8;
+    background-color: white;
+    border-top: 3px solid #6389A8;
+    box-shadow: 0 0 3px 1px;
 }
 
 .navbar-custom a {
-    color: #E3E3E3;
+    color: gray;
 }
 
 ul.nav > li > a:hover {
-    background-color: #6389A8;
+    background-color: white;
 }
 
 footer {
-    background: #e3e3e3;
+    background: #6389A8;
     padding: 10px 0 5px 0;
-    overflow: hidden;
-    margin-top: 50px;
 }
 
 footer a:hover {
-    color: #6389A8;
+    color: white;
     text-decoration: underline;
 }
 
 footer i,
 footer a,
 .text-muted {
-    color: #6389A8;
+    color: white;
 }
 
 .pi {
@@ -58,7 +58,7 @@ footer a,
 }
 
 h4 {
-    color: gray;
+    color: black;
 }
 
 .social .fa-github:hover {
@@ -114,7 +114,7 @@ h4 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #e3e3e3;
+  background: #6389A8;
   -webkit-transform: scaleY(0);
   transform: scaleY(0);
   -webkit-transform-origin: 50% 100%;
@@ -127,7 +127,7 @@ h4 {
   transition-timing-function: ease-out;
 }
 .hvr-sweep-to-top:hover, .hvr-sweep-to-top:focus, .hvr-sweep-to-top:active {
-  color: #6389A8;
+  color: white;
 }
 .hvr-sweep-to-top:hover:before, .hvr-sweep-to-top:focus:before, .hvr-sweep-to-top:active:before {
   -webkit-transform: scaleY(1);
