@@ -18,26 +18,30 @@ h4, h3, h2, h1 {
     font-weight: lighter;
 }
 
+a {
+    color: #ff4141;
+}
+
 .spacing-row {
     line-height: 43px;
 }
 
 .navbar-custom {
-    background-color: white;
+    background-color: #333;
     border-top: 3px solid #ff4141;
     box-shadow: 0 0 3px 1px;
 }
 
 .navbar-custom a {
-    color: gray;
+    color: white;
 }
 
 ul.nav > li > a:hover {
-    background-color: white;
+    background-color: #333;
 }
 
 footer {
-    background: #ff4141;
+    background: #333;
     padding: 10px 0 5px 0;
 }
 
@@ -52,6 +56,11 @@ footer a,
     color: white;
 }
 
+footer a:hover {
+    transition: all 0.3s ease 0s;
+    color: #ff4141;
+}
+
 .pi {
     color: #e3e3e3;
     font-size: 42px;
@@ -62,8 +71,9 @@ h4 {
 }
 
 .social .fa-github:hover {
-    color: #555;
+    color: #ff4141;
     text-decoration: none;
+    transition: all 0.3s ease 0s;
 }
 
 .icon-bar {
@@ -74,17 +84,7 @@ h4 {
     padding-bottom: 20px;
     margin: 20px 100px 50px;
 }
-/*
-.btn-default {
-    background: #e3e3e3;
-    transition: all 0.3s ease 0s;
-}
 
-.btn-default:hover {
-    background: #6389A8;
-    color: #e3e3e3;
-}
-*/
 .heart-custom {
     color: #c98c81;
     font-size: 18px;
@@ -96,47 +96,36 @@ h4 {
     border-radius: 8px;
 }
 
-/* Sweep To Top */
-.hvr-sweep-to-top {
-  display: inline-block;
-  vertical-align: middle;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  -moz-osx-font-smoothing: grayscale;
-  position: relative;
-  -webkit-transition-property: color;
-  transition-property: color;
-  -webkit-transition-duration: 0.3s;
-  transition-duration: 0.3s;
+/* Underline From Center */
+.hvr-underline-from-center {
+    display: inline-block;
+    vertical-align: middle;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    overflow: hidden;
 }
-.hvr-sweep-to-top:before {
-
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #6389A8;
-  -webkit-transform: scaleY(0);
-  transform: scaleY(0);
-  -webkit-transform-origin: 50% 100%;
-  transform-origin: 50% 100%;
-  -webkit-transition-property: transform;
-  transition-property: transform;
-  -webkit-transition-duration: 0.3s;
-  transition-duration: 0.3s;
-  -webkit-transition-timing-function: ease-out;
-  transition-timing-function: ease-out;
+.hvr-underline-from-center:before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    right: 50%;
+    bottom: 0;
+    background: #ff4141;
+    height: 4px;
+    -webkit-transition-property: left, right;
+    transition-property: left, right;
+    -webkit-transition-duration: 0.3s;
+    transition-duration: 0.3s;
+    -webkit-transition-timing-function: ease-out;
+    transition-timing-function: ease-out;
 }
-.hvr-sweep-to-top:hover, .hvr-sweep-to-top:focus, .hvr-sweep-to-top:active {
-  color: white;
-}
-.hvr-sweep-to-top:hover:before, .hvr-sweep-to-top:focus:before, .hvr-sweep-to-top:active:before {
-  -webkit-transform: scaleY(1);
-  transform: scaleY(1);
+.hvr-underline-from-center:hover:before, .hvr-underline-from-center:focus:before, .hvr-underline-from-center:active:before {
+    left: 0;
+    right: 0;
 }
