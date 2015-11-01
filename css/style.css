@@ -24,7 +24,7 @@ h4, h3, h2, h1 {
 
 .navbar-custom {
     background-color: white;
-    border-top: 3px solid #6389A8;
+    border-top: 3px solid #ff4141;
     box-shadow: 0 0 3px 1px;
 }
 
@@ -37,7 +37,7 @@ ul.nav > li > a:hover {
 }
 
 footer {
-    background: #6389A8;
+    background: #ff4141;
     padding: 10px 0 5px 0;
 }
 
@@ -89,6 +89,13 @@ h4 {
     color: #c98c81;
     font-size: 18px;
 }
+
+.btn-xl {
+    padding: 18px 28px;
+    font-size: 18px;
+    border-radius: 8px;
+}
+
 /* Sweep To Top */
 .hvr-sweep-to-top {
   display: inline-block;
