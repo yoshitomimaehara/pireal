@@ -28,7 +28,7 @@ a {
 
 .navbar-custom {
     background-color: #333;
-    border-top: 3px solid #ff4141;
+    border-top: 3px solid #f67c06;
     box-shadow: 0 0 3px 1px;
 }
 
@@ -71,7 +71,7 @@ h4 {
 }
 
 .social .fa-github:hover {
-    color: #ff4141;
+    color: #f67c06;
     text-decoration: none;
     transition: all 0.3s ease 0s;
 }
@@ -116,7 +116,7 @@ h4 {
     left: 50%;
     right: 50%;
     bottom: 0;
-    background: #ff4141;
+    background: #f67c06;
     height: 4px;
     -webkit-transition-property: left, right;
     transition-property: left, right;
