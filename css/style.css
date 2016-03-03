@@ -2,16 +2,6 @@ body {
     font-family: 'Ubuntu', serif;
     padding-top: 50px;
 }
-
-.marketing .col-lg-4 p {
-    margin-right: 10px;
-    margin-left: 10px;
-}
-
-.marketing .col-lg-4 {
-    text-align: center;
-}
-
 h4, h3, h2, h1 {
     color: "#2e3436";
     font-family: 'Ubuntu';
@@ -22,60 +12,8 @@ a {
     color: #3465a4;
 }
 
-.spacing-row {
-    line-height: 43px;
-}
-
-.navbar-custom {
-    background-color: #333;
-    border-top: 3px solid #f67c06;
-    box-shadow: 0 0 3px 1px;
-}
-
-.navbar-custom a {
-    color: white;
-}
-
-/*
-ul.nav > li > a:hover {
-    background-color: #333;
-}*/
-
-/*
 footer {
-    background: #333;
     padding: 10px 0 5px 0;
-}
-
-footer a:hover {
-    color: white;
-    text-decoration: underline;
-}
-
-footer i,
-footer a,
-.text-muted {
-    color: white;
-}
-
-footer a:hover {
-    transition: all 0.3s ease 0s;
-    color: #ff4141;
-}*/
-
-.pi {
-    color: #e3e3e3;
-    font-size: 42px;
-}
-
-.social .fa-github:hover {
-    color: #f67c06;
-    text-decoration: none;
-    transition: all 0.3s ease 0s;
-}
-
-.icon-bar {
-    background: #e3e3e3;
 }
 
 .page-header-custom {
@@ -88,8 +26,6 @@ footer a:hover {
     font-size: 18px;
 }
 
-.btn-xl {
-    padding: 18px 28px;
-    font-size: 18px;
-    border-radius: 8px;
+pre {
+    white-space: pre-line;
 }
