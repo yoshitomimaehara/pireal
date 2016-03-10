@@ -71,9 +71,7 @@
             <h4>El archivo debe tener extensión <code>.pdb</code> con la siguiente estructura:</h4>
                 <ul>
                     <li><h4>Ejemplo del archivo <code>database.pdb</code>:</h4></li>
-                    <pre>@personas:idPersona/numeric,nombrePersona/char,fecha_nac/date<br>11,Gabriel,20/01/1991<br>22,Rodrigo,19/06/2000<br>33,Mariela,18/11/71<br><br>@aptitudes:idPersona/numeric,aptitud/char<br>22,Gamer<br>11,Python<br>33,Chef</pre>
-                    <p>El <code>header</code> (nombres de campos) comienza con <code>@</code>seguido del nombre de la relación o tabla, luego <code>:</code> (dos puntos) y a continuación el nombre de cada campo separados por comas, a su vez, cada campo tiene asociado un tipo separado por <code>/</code>, el tipo puede ser numérico (<code>numeric</code>), alfanumérico (<code>char</code>) o fecha/hora (<code>date</code>). En las siguientes líneas se especifican las tuplas, es decir, los valores para cada campo, separadas por comas.</p>
-                    <li><h4>Guardas el archivo y ahora podés cargar la base de datos desde <i>Pireal</i>.</h4></li>
+                    <pre>@personas:idPersona,nombrePersona,fecha_nac<br>11,Gabriel,20/01/1991<br>22,Rodrigo,19/06/2000<br>33,Mariela,18/11/71<br><br>@aptitudes:idPersona,aptitud<br>22,Gamer<br>11,Python<br>33,Chef</pre>
                 </ul>
         </div>
         <!-- Queries -->
