@@ -11,36 +11,24 @@
         <link href='https://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
         <!-- Favicon -->
         <link rel="shortcut icon" type="image/png" href="img/favicon.png" />
-        <title>Pireal - Educational tool for Relational Algebra</title>
+        <title>Pireal - Relational Algebra Query Evaluator</title>
     </head>
     <body>
         <!-- Title -->
         <div class="container">
             <img src="img/pireal_logo-black.png" class="img-responsive center-block">
-            <h3 class="text-center">Herramienta para trabajar con Álgebra Relacional</h3>
+            <h3 class="text-center">Relational Algebra Query Evaluator</h3>
         </div>
         <!-- Description -->
         <div class="container">
             <h4>
                <i>Pireal</i> es una herramienta que permite evaluar consultas escritas en el lenguaje de Álgebra Relacional y visualizar el resultado de una consulta en particular.<br><br>
-               Las consultas se hacen a una base de datos. Una base de datos contiene tablas/relaciones, tanto la base de datos como las relaciones, pueden ser creadas/editadas desde la herramienta o desde un editor de texto.
+                Las consultas se hacen a una base de datos. Una base de datos contiene tablas/relaciones, tanto la base de datos como las relaciones, pueden ser creadas/editadas desde <i>Pireal</i> o desde un editor de texto.
                <br><br>
             </h4>
         </div>
-        <!-- Contents -->
-        <div class="container">
-            <div class="toc">
-                <ul>
-                    <li><h4><a href="#install">Instalación</a></h4></li>
-                    <li><h4><a href="#db">Creación de la base de datos</a></h4></li>
-                    <li><h4><a href="#queries">Consultas</a></h4></li>
-                    <li><h4><a href="#devs">A los programadores...</a></h4></li>
-                    <li><h4><a href="#colaborate">Cómo colaborar?</a></h4></li>
-                </ul>
-            </div>
-        </div>
         <!-- Install -->
-        <div id="install" class="container">
+        <div class="container">
             <h3>Instalación</h3>
             <ul>
                 <li><h4>GNU/Linux</h4></li>
@@ -51,7 +39,7 @@
                     <li><h4>Siguiente, siguiente, siguiente... ;)</h4></li>
                 </ul>
                 <li><h4>Desde el código fuente</h4></li>
-                <h4>Para instalarlo a la <i>vieja escuela</i>, antes instalá estos requisitos:</h4>
+                <h4>Antes instalá estos requisitos:</h4>
                 <ul>
                     <li><h4><a href="http://python.org/">Python 3</a></h4></li>
                     <li><a href="https://riverbankcomputing.com/software/pyqt/intro">PyQt5</a></li>
@@ -65,7 +53,7 @@
             </ul>
         </div>
         <!-- Create db -->
-        <div id="db" class="container">
+        <div class="container">
             <h3>Creación de la base de datos</h3>
             <h4>Una base de datos de <i>Pireal</i> es un archivo <code>.pdb</code>, para crearlo tenés dos opciones, desde la UI o creando un archivo:</h4>
             <h4>El archivo debe tener extensión <code>.pdb</code> con la siguiente estructura:</h4>
@@ -73,9 +61,10 @@
                     <li><h4>Ejemplo del archivo <code>database.pdb</code>:</h4></li>
                     <pre>@personas:idPersona,nombrePersona,fecha_nac<br>11,Gabriel,20/01/1991<br>22,Rodrigo,19/06/2000<br>33,Mariela,18/11/71<br><br>@aptitudes:idPersona,aptitud<br>22,Gamer<br>11,Python<br>33,Chef</pre>
                 </ul>
+                <b>Nota:</b> No debe existir espacios en los nombres de campo después de la coma.
         </div>
         <!-- Queries -->
-        <div id="queries" class="container">
+        <div class="container">
             <h3>Consultas</h3>
             <h4>Una vez que tengas cargada una base de datos, podés hacer consultas como éstas:</h4>
             <h4><code>consulta_1 = personas njoin aptitudes<br>consulta_2 = select idPersona == 11 (consulta_1)<br>consulta_3 = project nombrePersona, aptitud (consulta_2)</code></h4>
@@ -87,21 +76,43 @@
             
         </div>
         <!-- Dev --->
-        <div id="devs" class="container">
+        <div class="container">
             <h3>Programadores...</h3>
             <ul>
                 <li><h4>El núcleo de <i>Pireal</i> está escrito en <a href="http://python.org">Python</a>.</h4></li>
                 <li><h4>La UI está desarrollada en <a href="http://qt.io">Qt</a> y <a href="http://doc.qt.io/qt-5/qtqml-index.html">QML</a>.</h4></li>
-                <li><h4>El desarrollador es <a href="http://twitter.com/_alfacentauri">Gabriel Acosta</a>.</h4></li>
+                <!--<li><h4>El desarrollador es <a href="http://twitter.com/_alfacentauri">Gabriel Acosta</a>.</h4></li>-->
                 <li><h4>El código fuente está disponible en <a href="http://github.com/centaurialpha/pireal">GitHub</a> bajo la licencia <a href="www.gnu.org/licenses/gpl-3.0.en.html">GPL</a> versión 3.</h4></li>
             </ul>
         </div>
-        <div id="colaborate" class="container">
+        <div class="container">
             <h3>Cómo participo en el proyecto?</h3>
             <ul>
                 <li><h4>Encontraste un problema? Publicálo  <a href="http://github.com/centaurialpha/pireal/issues">acá</a>, mandáme un <a href="mailto:acostadariogabriel@gmail.com">e-mail</a> o buscáme en la facultad y tratamos de arreglarlo ;).</h4></li>
                 <li><h4><i>Pireal</i> está disponible en Inglés y Español. Querés traducirlo a otro idioma? <a href="#">Hacélo!</a>.</h4></li>
-                <li><h4>Sabés programar en <i>Python</i>? Colaborá en el <a href="http://github.com/centaurialpha/pireal"> código fuente</a>.</h4></li>
+                <li><h4>Pasáte por la lista de <a href="https://github.com/centaurialpha/pireal/wiki/Cosas-por-hacer">cosas por hacer</a>.</h4></li>
+                <li><h4>Siempre son bienvenidos los <a href="http://www.cristalab.com/tutoriales/como-colaborar-en-un-proyecto-en-github-c112327l/">pull request</a>.</h4></li>
+            </ul>
+        </div>
+        <div class="container">
+            <h3>Recursos</h3>
+            <ul>
+                <li><h4>Base de datos:</h4></li>
+                <ul>
+                    <li><a href="database.pdb">database.pdb</a></li>
+                    <li><a href="hobby.pdb">hobby.pdb</a></li>
+                </ul>
+                <li><h4>Relaciones:</h4></li>
+                <ul>
+                    <li><a href="people.prf">people.prf</a></li>
+                    <li><a href="skills.prf">skills.prf</a></li>
+                </ul>
+                <li><h4>Consultas:</h4></li>
+                <ul>
+                    <li>qasdas</li>
+                    <li>qasdas</li>
+                </ul>
+                <li><h4><a href="img/pireal_wall.jpg">Pireal Wallpaper</a>.</h4></li>
             </ul>
         </div>
         <!-- Footer -->

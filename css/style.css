@@ -33,15 +33,3 @@ pre {
 code {
     color: #3465a4;
 }
-
-.toc {
-    display: table;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    padding: 5px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    padding-left: 5px;
-    padding-right: 5px;
-    background-color: #f1f1f1;
-}
