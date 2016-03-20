@@ -22,7 +22,7 @@
         <!-- Description -->
         <div class="container">
             <h4>
-               <i>Pireal</i> es una herramienta que permite evaluar consultas escritas en el lenguaje de Álgebra Relacional y visualizar el resultado de una consulta en particular.<br><br>
+               <i>Pireal</i> es una herramienta que permite evaluar consultas escritas en el lenguaje de Álgebra Relacional y visualizar el resultado de una consulta en particular, todo desde una interfáz muy intuitiva.<br><br>
                 Las consultas se hacen a una base de datos. Una base de datos contiene tablas/relaciones, tanto la base de datos como las relaciones, pueden ser creadas/editadas desde <i>Pireal</i> o desde un editor de texto.
                <br><br>
             </h4>
@@ -32,22 +32,22 @@
             <h3>Instalación</h3>
             <ul>
                 <li><h4>GNU/Linux</h4></li>
-                <h4>Se está trabajando en el empaquetado para Debian/Ubuntu, mientras tanto usá el tarball.</h4>
+                <h4>Se está trabajando en el empaquetado para Debian/Ubuntu, mientras tanto puedes usar el tarball.</h4>
                 <li><h4>Windows</h4></li>
-                <h4>Bajáte el instalador desde <a href="#">acá</a>.</h4>
+                <h4>Descarga el instalador desde <a href="#">acá</a>.</h4>
                 <ul>
                     <li><h4>Siguiente, siguiente, siguiente... ;)</h4></li>
                 </ul>
                 <li><h4>Desde el código fuente</h4></li>
-                <h4>Antes instalá estos requisitos:</h4>
+                <h4>Antes debes instalar estos requisitos:</h4>
                 <ul>
                     <li><h4><a href="http://python.org/">Python 3</a></h4></li>
                     <li><a href="https://riverbankcomputing.com/software/pyqt/intro">PyQt5</a></li>
                 </ul>
                 <h4>Luego:</h4>
                 <ul>
-                    <li><h4>Descargá el <a href="#">tarball multiplataforma</a>.</h4></li>
-                    <li><h4>Descomprimílo, entrá a la carpeta y lo instalás:</h4></li>
+                    <li><h4>Descarga el <a href="#">tarball multiplataforma</a>.</h4></li>
+                    <li><h4>Descomprimir, entrar a la carpeta e instalar:</h4></li>
                     <pre>tar -xvf pireal-1.0.tar.gz<br>cd pireal-1.0<br>sudo python setup.py install</pre>
                 </ul>
             </ul>
@@ -55,7 +55,7 @@
         <!-- Create db -->
         <div class="container">
             <h3>Creación de la base de datos</h3>
-            <h4>Una base de datos de <i>Pireal</i> es un archivo <code>.pdb</code>, para crearlo tenés dos opciones, desde la UI o creando un archivo:</h4>
+            <h4>Una base de datos de <i>Pireal</i> es un archivo <code>.pdb</code>, para crearlo hay dos opciones, desde la UI o creando un archivo:</h4>
             <h4>El archivo debe tener extensión <code>.pdb</code> con la siguiente estructura:</h4>
                 <ul>
                     <li><h4>Ejemplo del archivo <code>database.pdb</code>:</h4></li>
@@ -66,14 +66,12 @@
         <!-- Queries -->
         <div class="container">
             <h3>Consultas</h3>
-            <h4>Una vez que tengas cargada una base de datos, podés hacer consultas como éstas:</h4>
+            <h4>Una vez que tengas cargada una base de datos, se pueden hacer consultas como éstas:</h4>
             <h4><code>consulta_1 = personas njoin aptitudes<br>consulta_2 = select idPersona == 11 (consulta_1)<br>consulta_3 = project nombrePersona, aptitud (consulta_2)</code></h4>
             <h4>O simplemente:</h4>
             <h4><code>project nombrePersona, aptitud (select idPersona == 11 (personas njoin aptitudes))</code></h4>
-            <h4>Si querés agregar comentarios a una consulta, usá la siguiente sintáxis:</h4>
+            <h4>También se puede comentar las consultas:</h4>
             <h4><code>-- Ésto es un comentario<br>q1 = select idPersona == 2<br>-- Otro comentario<br>q2 = project nombrePersona (q1)</code></h4>
-            <h4>Los archivos de consultas, tienen extensión <code>.pqf</code>, por lo que podés crear consultas editando un archivo y luego abrir esa consulta desde <i>Pireal</i>.</h4>
-            
         </div>
         <!-- Dev --->
         <div class="container">
@@ -109,8 +107,7 @@
                 </ul>
                 <li><h4>Consultas:</h4></li>
                 <ul>
-                    <li>qasdas</li>
-                    <li>qasdas</li>
+                    <li><a href="consulta_database.pqf">consulta_database.pqf</a></li>
                 </ul>
                 <li><h4><a href="img/pireal_wall.jpg">Pireal Wallpaper</a>.</h4></li>
             </ul>
