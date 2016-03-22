@@ -2,14 +2,21 @@ body {
     font-family: 'Ubuntu', serif;
     padding-top: 50px;
 }
-h4, h3, h2, h1 {
-    color: "#2e3436";
-    font-family: 'Ubuntu';
-    font-weight: lighter;
+
+.text-black {
+    color: #2e3436;
+}
+
+div > h3 {
+    color: #3465a4;
 }
 
 a {
-    color: #3465a4;
+    text-decoration: underline;
+}
+
+a:hover {
+    color: darkslateblue;
 }
 
 footer {
