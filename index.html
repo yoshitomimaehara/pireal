@@ -25,7 +25,12 @@
       <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
     <script type="text/javascript">
-$(document).ready(function(){
+//$(document).ready(function(){
+    function showDemo() {
+    /* Replace link if JavaScript are enabled */
+    var link = document.getElementById("link");
+    link.setAttribute('href', "#video");
+    
     /* Get iframe src attribute value i.e. YouTube video url
     and store it in a variable */
     var url = $("#demoPireal").attr('src');
@@ -41,7 +46,7 @@ $(document).ready(function(){
     $("#video").on('show.bs.modal', function(){
         $("#cartoonVideo").attr('src', url);
     });
-});
+}
 </script>
 </head> 
 
@@ -81,7 +86,7 @@ $(document).ready(function(){
             <h2 class="title">Π<span class="highlight">real</span></h2>
             <p class="intro">A free cross-platform tool for working with Relational Algebra</p>
             <div class="btns">
-                <a class="btn btn-cta-secondary" href="#video" data-toggle="modal">Demo</a>
+                <a id="link" target="_blank" class="btn btn-cta-secondary" href="https://www.youtube.com/watch?v=UkfJpu6YlVM" data-toggle="modal" onclick="showDemo();">Demo</a>
                 <div id="video" class="modal fade">
                     <div class="modal-dialog">
                         <div class="modal-content">
