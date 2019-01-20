@@ -61,24 +61,28 @@ class Model(QAbstractTableModel):
         if not index.isValid():
             return QVariant()
         row, col = index.row(), index.column()
+        content = list(self.__data.content)
         if role == Qt.DisplayRole:
-            return self.__data.content[row][col]
+            return content[row][col]
         elif role == Qt.TextColorRole:
-            value = self.__data.content[row][col]
+            value = content[row][col]
             if value == 'null':
                 # Para las operaciones de left, right y full other join
                 return QColor('red')
         elif role == Qt.FontRole:
             font = QFont()
-            font.setPointSize(12)
+            font.setPointSize(10)
             return font
+        elif role == Qt.TextAlignmentRole:
+            return Qt.AlignHCenter
 
     def setData(self, index, value, role):
         """ Método reimplementado.
         Este método actualiza el modelo """
         if index.isValid() and role == Qt.EditRole:
             modified = False
-            old_value = self.__data.content[index.row()][index.column()]
+            # old_value = self.__data.content[index.row()][index.column()]
+            old_value = list(self.__data.content)[index.row()][index.column()]
             if value != old_value:
                 # Si son distintos los datos, actualizo
                 self.__data.update(index.row(), index.column(), value)
@@ -121,13 +125,13 @@ class Model(QAbstractTableModel):
             flags |= Qt.ItemIsEditable
         return flags
 
-    def insertRow(self, position, index=QModelIndex()):
+    def insertRow(self, position, tupla, index=QModelIndex()):
         """ Método reimplementado.
         Inserta una fila al final de la tabla y emite una señal con
         el nuevo valor de cardinalidad """
 
         self.beginInsertRows(QModelIndex(), position, position)
-        self.__data.append_row()
+        self.__data.insert(tupla)
         self.cardinalityChanged.emit(self.__data.cardinality())
         self.set_modified(True)
         self.endInsertRows()
@@ -147,7 +151,8 @@ class Model(QAbstractTableModel):
         valor de cardinalidad """
 
         self.beginRemoveRows(QModelIndex(), row, row)
-        del self.__data.content[row]
+        data = list(self.__data.content)[row]
+        self.__data.content.remove(data)
         self.cardinalityChanged.emit(self.__data.cardinality())
         self.set_modified(True)
         self.endRemoveRows()

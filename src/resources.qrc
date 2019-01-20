@@ -11,7 +11,6 @@
         <file alias="create_database">images/database.png</file>
         <file alias="save_database">images/database_save.png</file>
         <file alias="open_database">images/import_database.png</file>
-        <file alias="insert_tuple">images/insert_row.png</file>
         <file alias="new_query">images/new-query.png</file>
         <file alias="open_query">images/open-query.png</file>
         <file alias="save_query">images/save-query.png</file>
@@ -21,8 +20,12 @@
         <file alias="close_database">images/database-close.png</file>
         <file alias="close">images/close.png</file>
         <file alias="show_settings">images/preferences.png</file>
-        <file alias="logo">images/pireal_logo-black.png</file>
         <file alias="icon">images/pireal_icon.png</file>
         <file alias="edit_relation">images/table_edit.png</file>
+        <file alias="logo">gui/qml/pireal_logo.png</file>
+        <file alias="add_column">images/add-column.png</file>
+        <file alias="delete_column">images/delete-column.png</file>
+        <file alias="split">images/split.png</file>
+        <file alias="report_issue">images/bug.png</file>
     </qresource>
 </RCC>

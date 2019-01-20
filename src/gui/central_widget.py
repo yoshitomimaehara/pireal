@@ -22,12 +22,18 @@ import csv
 
 from PyQt5.QtWidgets import (
     QWidget,
+    QDialog,
     QVBoxLayout,
+    QHBoxLayout,
     QStackedWidget,
+    QLineEdit,
+    QLabel,
     QFileDialog,
-    QMessageBox
+    QMessageBox,
+    QShortcut,
 )
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import pyqtSignal, Qt
 
 from src.core import (
     settings,
@@ -41,11 +47,11 @@ from src.gui import (
     database_container
 )
 from src.gui.dialogs import (
-    preferences,
+    # preferences,
     new_relation_dialog,
     new_database_dialog
 )
-PSetting = settings.PSetting
+from src.core.settings import CONFIG
 # Logger
 logger = Logger(__name__)
 
@@ -68,13 +74,21 @@ class CentralWidget(QWidget):
         self.created = False
         # Acá cacheo la última carpeta accedida
         self.__last_open_folder = None
-        if PSetting.LAST_OPEN_FOLDER:
-            self.__last_open_folder = PSetting.LAST_OPEN_FOLDER
+        if CONFIG.get("lastOpenFolder") is not None:
+            self.__last_open_folder = CONFIG.get("lastOpenFolder")
         self.__recent_dbs = []
-        if PSetting.RECENT_DBS:
-            self.__recent_dbs = PSetting.RECENT_DBS
+        if CONFIG.get("recentFiles"):
+            self.__recent_dbs = CONFIG.get("recentFiles")
 
         Pireal.load_service("central", self)
+
+        esc_short = QShortcut(QKeySequence(Qt.Key_Escape), self)
+        esc_short.activated.connect(self._hide_search)
+
+    def _hide_search(self):
+        query_container = self.get_active_db().query_container
+        if query_container is not None:
+            query_container.set_editor_focus()
 
     @property
     def recent_databases(self):
@@ -82,19 +96,24 @@ class CentralWidget(QWidget):
 
     @recent_databases.setter
     def recent_databases(self, database_file):
-        if database_file in PSetting.RECENT_DBS:
-            PSetting.RECENT_DBS.remove(database_file)
-        PSetting.RECENT_DBS.insert(0, database_file)
-        self.__recent_dbs = PSetting.RECENT_DBS
+        recent_files = CONFIG.get("recentFiles")
+        if database_file in recent_files:
+            recent_files.remove(database_file)
+        recent_files.insert(0, database_file)
+        self.__recent_dbs = recent_files
 
     @property
     def last_open_folder(self):
         return self.__last_open_folder
 
+    def rdb_to_pdb(self):
+        from src.gui import rdb_pdb_tool
+        dialog = rdb_pdb_tool.RDBPDBTool(self)
+        dialog.exec_()
+
     def create_database(self):
-        """ Show a wizard widget to create a new database,
-        only have one database open at time.
-        """
+        """Show a wizard widget to create a new database,
+        only have one database open at time."""
 
         if self.created:
             return self.__say_about_one_db_at_time()
@@ -103,7 +122,7 @@ class CentralWidget(QWidget):
         dialog.show()
 
     def __on_wizard_finished(self, *data):
-        """ This slot execute when wizard to create a database is finished """
+        """This slot execute when wizard to create a database is finished"""
 
         pireal = Pireal.get_service("pireal")
         if data:
@@ -127,9 +146,9 @@ class CentralWidget(QWidget):
     def __say_about_one_db_at_time(self):
         logger.info("Una base de datos a la vez")
         QMessageBox.information(self,
-                                self.tr("Information"),
-                                self.tr("You may only have one database"
-                                        " open at time."))
+                                self.tr("Información"),
+                                self.tr("Una base de datos a la vez por "
+                                        "favor."))
 
     def open_database(self, filename='', remember=True):
         """ This function opens a database and set this on the UI """
@@ -145,7 +164,8 @@ class CentralWidget(QWidget):
                 directory = self.__last_open_folder
             filter_ = settings.SUPPORTED_FILES.split(';;')[0]
             filename, _ = QFileDialog.getOpenFileName(self,
-                                                      self.tr("Open Database"),
+                                                      self.tr("Abrir Base de "
+                                                              "Datos"),
                                                       directory,
                                                       filter_)
             # If is canceled, return
@@ -162,7 +182,7 @@ class CentralWidget(QWidget):
             db_data = self.__sanitize_data(db_data)
         except Exception as reason:
             QMessageBox.information(self,
-                                    self.tr("The file couldn't be open"),
+                                    self.tr("El archivo no se puede abrir"),
                                     reason.__str__())
             logger.debug("Error al abrir el archivo {0}: '{1}'".format(
                 filename, reason.__str__()))
@@ -189,7 +209,7 @@ class CentralWidget(QWidget):
         db_name = file_manager.get_basename(filename)
         # Update title with the new database name, and enable some actions
         pireal = Pireal.get_service("pireal")
-        self.databaseConected.emit(self.tr("Conected to: {}".format(db_name)))
+        self.databaseConected.emit(self.tr("Conectado a: {}".format(db_name)))
         pireal.set_enabled_db_actions(True)
         pireal.set_enabled_relation_actions(True)
         if remember:
@@ -207,7 +227,8 @@ class CentralWidget(QWidget):
                 directory = self.__last_open_folder
             filter_ = settings.SUPPORTED_FILES.split(';;')[1]
             filename, _ = QFileDialog.getOpenFileName(self,
-                                                      self.tr("Open Query"),
+                                                      self.tr(
+                                                          "Abrir Consulta"),
                                                       directory,
                                                       filter_)
             if not filename:
@@ -223,7 +244,8 @@ class CentralWidget(QWidget):
         db = self.get_active_db()
         fname = db.save_query(editor)
         if fname:
-            self.querySaved.emit(self.tr("Query saved: {}".format(fname)))
+            self.querySaved.emit(self.tr("Consulta guardada: {}".format(
+                fname)))
 
     def save_query_as(self):
         pass
@@ -235,35 +257,31 @@ class CentralWidget(QWidget):
         """
 
         # FIXME: controlar cuando al final de la línea hay una coma
-        data_dict = {'tables': []}
-
+        from collections import defaultdict
+        data_dict = defaultdict(list)
         for line_count, line in enumerate(data.splitlines()):
             # Ignore blank lines
-            if not line:
+            if not line.strip():
                 continue
-            if line.startswith('@'):
-                # Esta línea es el header de una relación
-                tpoint = line.find(':')
+            if line.startswith("@"):
+                # Header de una relación
+                tpoint = line.find(":")
                 if tpoint == -1:
-                    raise Exception("Invalid syntax at line {}".format(
+                    raise Exception("Error de sintáxis en la línea {}".format(
                         line_count + 1))
-
-                table_name, line = line.split(':')
+                table_name, line = line.split(":")
                 table_name = table_name[1:].strip()
                 table_dict = {}
-                table_dict['name'] = table_name
-                table_dict['header'] = list(map(str.strip, line.split(',')))
-
-                table_dict['tuples'] = []
-
+                table_dict["name"] = table_name
+                table_dict["header"] = list(map(str.strip, line.split(",")))
+                table_dict["tuples"] = set()
             else:
+                # Tuplas de la relación
                 for l in csv.reader([line]):
-                    # Remove spaces
-                    tupla = list(map(str.strip, l))
-                    table_dict['tuples'].append(tupla)
-            if not table_dict['tuples']:
-                data_dict['tables'].append(table_dict)
-
+                    tupla = tuple(map(str.strip, l))
+                    table_dict["tuples"].add(tupla)
+            if not table_dict["tuples"]:
+                data_dict["tables"].append(table_dict)
         return data_dict
 
     def remove_last_widget(self):
@@ -281,16 +299,15 @@ class CentralWidget(QWidget):
         if db.modified:
             msgbox = QMessageBox(self)
             msgbox.setIcon(QMessageBox.Question)
-            msgbox.setWindowTitle(self.tr("Save Changes?"))
-            msgbox.setText(self.tr("The <b>{}</b> database has ben"
-                                   " modified.<br>Do you want save "
-                                   "your changes?".format(
-                                       db.dbname())))
-            cancel_btn = msgbox.addButton(self.tr("Cancel"),
+            msgbox.setWindowTitle(self.tr("Guardar cambios?"))
+            msgbox.setText(self.tr("La base de datos <b>{}</b> ha sido "
+                                    "modificada.<br>Quiere guardar los "
+                                    "cambios?".format(db.dbname())))
+            cancel_btn = msgbox.addButton(self.tr("Cancelar"),
                                           QMessageBox.RejectRole)
             msgbox.addButton(self.tr("No"),
                              QMessageBox.NoRole)
-            yes_btn = msgbox.addButton(self.tr("Yes"),
+            yes_btn = msgbox.addButton(self.tr("Si"),
                                        QMessageBox.YesRole)
             msgbox.exec_()
             r = msgbox.clickedButton()
@@ -308,16 +325,16 @@ class CentralWidget(QWidget):
                 if weditor.modified:
                     msgbox = QMessageBox(self)
                     msgbox.setIcon(QMessageBox.Question)
-                    msgbox.setWindowTitle(self.tr("File modified"))
-                    msgbox.setText(self.tr("The file <b>{}</b> has unsaved "
-                                           "changes. You want to keep "
-                                           "them?".format(
+                    msgbox.setWindowTitle(self.tr("Archivo modificado"))
+                    msgbox.setText(self.tr("El archivo <b>{}</b> tiene cambios"
+                                           " no guardados. Quiere "
+                                           "mantenerlos?".format(
                                                weditor.name)))
-                    cancel_btn = msgbox.addButton(self.tr("Cancel"),
+                    cancel_btn = msgbox.addButton(self.tr("Cancelar"),
                                                   QMessageBox.RejectRole)
                     msgbox.addButton(self.tr("No"),
                                      QMessageBox.NoRole)
-                    yes_btn = msgbox.addButton(self.tr("Yes"),
+                    yes_btn = msgbox.addButton(self.tr("Si"),
                                                QMessageBox.YesRole)
                     msgbox.exec_()
                     r = msgbox.clickedButton()
@@ -354,6 +371,8 @@ class CentralWidget(QWidget):
         comment_action.setEnabled(True)
         uncomment_action = Pireal.get_action("uncomment")
         uncomment_action.setEnabled(True)
+        search_action = Pireal.get_action("search")
+        search_action.setEnabled(True)
 
     def execute_queries(self):
         db_container = self.get_active_db()
@@ -377,14 +396,15 @@ class CentralWidget(QWidget):
         filename = db.pfile.filename
         # Emit signal
         self.databaseSaved.emit(
-            self.tr("Database saved: {}".format(filename)))
+            self.tr("Base de datos guardada: {}".format(filename)))
 
         db.modified = False
 
     def save_database_as(self):
         filter = settings.SUPPORTED_FILES.split(';;')[0]
         filename, _ = QFileDialog.getSaveFileName(self,
-                                                  self.tr("Save Database As"),
+                                                  self.tr("Guardar Base de "
+                                                          "Datos como..."),
                                                   settings.PIREAL_DATABASES,
                                                   filter)
         if not filename:
@@ -399,7 +419,7 @@ class CentralWidget(QWidget):
             filename += '.pdb'
         db.pfile.save(content, filename)
         self.databaseSaved.emit(
-            self.tr("Database saved: {}".format(db.pfile.filename)))
+            self.tr("Base de datos guardada: {}".format(db.pfile.filename)))
 
         db.modified = False
 
@@ -411,9 +431,11 @@ class CentralWidget(QWidget):
     def create_new_relation(self):
         def create_relation(relation, relation_name):
             db = self.get_active_db()
+            lateral = Pireal.get_service("lateral_widget")
             table = db.create_table(relation, relation_name)
             db.table_widget.add_table(relation, relation_name, table)
-            db.lateral_widget.add_item(relation_name, relation.cardinality())
+            lateral.relation_list.add_item(
+                relation_name, relation.cardinality(), relation.degree())
             db.modified = True
 
         dialog = new_relation_dialog.NewRelationDialog(self)
@@ -429,7 +451,7 @@ class CentralWidget(QWidget):
             else:
                 directory = self.__last_open_folder
 
-            msg = self.tr("Open Relation File")
+            msg = self.tr("Abrir Relación")
             filter_ = settings.SUPPORTED_FILES.split(';;')[-1]
             filenames = QFileDialog.getOpenFileNames(self, msg, directory,
                                                      filter_)[0]
@@ -452,16 +474,18 @@ class CentralWidget(QWidget):
     def show_settings(self):
         """ Show settings dialog on stacked """
 
-        preferences_dialog = preferences.Preferences(self)
+        # preferences_dialog = preferences.Preferences(self)
 
-        if isinstance(self.widget(1), preferences.Preferences):
-            self.widget(1).close()
-        else:
-            self.stacked.insertWidget(1, preferences_dialog)
-            self.stacked.setCurrentIndex(1)
+        # if isinstance(self.widget(1), preferences.Preferences):
+        #     self.widget(1).close()
+        # else:
+        #     self.stacked.insertWidget(1, preferences_dialog)
+        #     self.stacked.setCurrentIndex(1)
 
-        # Connect the closed signal
-        preferences_dialog.settingsClosed.connect(self._settings_closed)
+        # # Connect the closed signal
+        # preferences_dialog.settingsClosed.connect(self._settings_closed)
+        # TODO: para la próxima versión
+        pass
 
     def widget(self, index):
         """ Returns the widget at the given index """
@@ -530,20 +554,42 @@ class CentralWidget(QWidget):
         query_container.uncomment()
 
     def add_tuple(self):
+        lateral = Pireal.get_service("lateral_widget")
+        if lateral.relation_list.has_item() == 0:
+            return
+        # rname = lateral.relation_list.item_text(lateral.relation_list.row())
+        rname = lateral.relation_list.current_text()
+        from src.gui.dialogs.edit_relation_dialog import EditRelationDialog
+        dialog = EditRelationDialog(rname, self)
         tw = self.get_active_db().table_widget
-        tw.add_tuple()
+        dialog.sendData.connect(tw.insert_rows)
+        dialog.show()
 
     def add_column(self):
         tw = self.get_active_db().table_widget
         tw.add_column()
 
     def delete_tuple(self):
+        lateral = Pireal.get_service("lateral_widget")
+        if lateral.relation_list.has_item() == 0:
+            return
+        r = QMessageBox.question(
+                self,
+                self.tr("Eliminar tupla/s"),
+                self.tr("Seguro que quiere eliminar las tuplas seleccionadas?"),
+                QMessageBox.Yes | QMessageBox.Cancel)
+        if r == QMessageBox.Cancel:
+            return
         tw = self.get_active_db().table_widget
         tw.delete_tuple()
 
     def delete_column(self):
         tw = self.get_active_db().table_widget
         tw.delete_column()
+
+    def search(self):
+        query_container = self.get_active_db().query_container
+        query_container.search()
 
 
 central = CentralWidget()

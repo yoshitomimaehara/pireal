@@ -21,7 +21,8 @@ from PyQt5.QtGui import (
     QSyntaxHighlighter,
     QTextCharFormat,
     QFont,
-    QTextBlockUserData
+    QTextBlockUserData,
+    QColor
 )
 from PyQt5.QtCore import (
     Qt,
@@ -57,31 +58,45 @@ class Highlighter(QSyntaxHighlighter):
         super(Highlighter, self).__init__(editor)
         # Keywords format
         keyword_format = QTextCharFormat()
-        keyword_format.setForeground(Qt.darkBlue)
+        keyword_format.setForeground(QColor("#222"))
         keyword_format.setFontWeight(QFont.Bold)
 
         # Rules
         self._rules = [(QRegExp("\\b" + pattern + "\\b"), keyword_format)
                        for pattern in Highlighter.KEYWORDS]
 
+        # vars
+        var_format = QTextCharFormat()
+        var_pattern = QRegExp("\w+\s*\:\=")
+        var_format.setFontWeight(QFont.Bold)
+        var_format.setForeground(QColor("#dd1144"))
+
+        self._rules.append((var_pattern, var_format))
+
+        op_format = QTextCharFormat()
+        op_pattern = QRegExp("(\\:=|\\(|\\))|=|<|>")
+        op_format.setForeground(QColor("#222"))
+        op_format.setFontWeight(QFont.Bold)
+        self._rules.append((op_pattern, op_format))
         # Number format
         number_format = QTextCharFormat()
         number_pattern = QRegExp(r"\b([A-Z0-9]+)(?:[ _-](\d+))?\b")
         number_pattern.setMinimal(True)
-        number_format.setForeground(Qt.darkCyan)
+        number_format.setForeground(QColor("orange"))
         self._rules.append((number_pattern, number_format))
 
         # String format
         string_format = QTextCharFormat()
         string_pattern = QRegExp("\'.*\'")
         string_pattern.setMinimal(True)
-        string_format.setForeground(Qt.darkMagenta)
+        string_format.setForeground(Qt.darkGreen)
         self._rules.append((string_pattern, string_format))
 
         # Comment format
         comment_format = QTextCharFormat()
         comment_pattern = QRegExp("%[^\n]*")
-        comment_format.setForeground(Qt.darkGreen)
+        comment_format.setForeground(QColor("#999988"))
+        comment_format.setFontItalic(True)
         self._rules.append((comment_pattern, comment_format))
 
         # Paren

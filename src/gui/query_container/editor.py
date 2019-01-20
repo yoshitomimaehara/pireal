@@ -19,51 +19,94 @@
 
 from PyQt5.QtWidgets import (
     QPlainTextEdit,
-    QTextEdit
+    QTextEdit,
 )
 from PyQt5.QtGui import (
     QTextCharFormat,
     QTextCursor,
-    QColor
+    QFont,
+    QColor,
+    QTextOption,
+    QTextDocument
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 
 from src.gui.query_container import (
     highlighter,
     sidebar
 )
-from src.core.settings import PSetting
+from src.core.settings import CONFIG
+# from src.gui.query_container import snippets
 
 
 class Editor(QPlainTextEdit):
 
     def __init__(self, pfile=None):
         super(Editor, self).__init__()
-        # self.setStyleSheet("background-color: #ffffff; color: black;")
+        pal = self.palette()
+        pal.setColor(pal.Text, QColor("#555"))
+        self.setPalette(pal)
+
+        self.setFrameShape(QPlainTextEdit.NoFrame)
+        self.setMouseTracking(True)
+        self.setLineWrapMode(QPlainTextEdit.NoWrap)
+        self.setCursorWidth(3)
         self.pfile = pfile
+        self.__visible_blocks = []
         self.modified = False
         # Highlight current line
-        self._highlight_line = PSetting.HIGHLIGHT_CURRENT_LINE
+        self._highlight_line = CONFIG.get("highlightCurrentLine")
         # Highlighter
         self._highlighter = highlighter.Highlighter(self.document())
         # Set document font
-        self.set_font(PSetting.FONT)
+        font_family = CONFIG.get("fontFamily")
+        size = CONFIG.get("fontSize")
+        if font_family is None:
+            font_family, size = CONFIG._get_font()
+
+        self.set_font(font_family, size)
         # Sidebar
         self._sidebar = sidebar.Sidebar(self)
-
+        self.__message = None
+        self.word_separators = [")", "("]
+        # Extra selections
+        self._selections = {}
         self.__cursor_position_changed()
-
+        # self.snippets = snippets.SnippetManager(self)
         # Menu
         self.setContextMenuPolicy(Qt.CustomContextMenu)
-
+        self.blockCountChanged.connect(self.update)
         # Connection
-        self.updateRequest['const QRect&', int].connect(
-            self._sidebar.update_area)
         self.cursorPositionChanged.connect(self.__cursor_position_changed)
 
     @property
+    def visible_blocks(self):
+        return self.__visible_blocks
+
+    def _update_visible_blocks(self):
+        self.__visible_blocks.clear()
+        append = self.__visible_blocks.append
+
+        block = self.firstVisibleBlock()
+        block_number = block.blockNumber()
+        top = self.blockBoundingGeometry(block).translated(
+            self.contentOffset()).top()
+        bottom = top + self.blockBoundingRect(block).height()
+        editor_height = self.height()
+        while block.isValid():
+            visible = bottom <= editor_height
+            if not visible:
+                break
+            if block.isVisible():
+                append((top, block_number, block))
+            block = block.next()
+            top = bottom
+            bottom = top + self.blockBoundingRect(block).height()
+            block_number += 1
+
+    @property
     def filename(self):
-        """ This function returns the filename of RFile object
+        """This function returns the filename of RFile object
 
         :returns: filename of PFile
         """
@@ -80,34 +123,79 @@ class Editor(QPlainTextEdit):
 
     def resizeEvent(self, event):
         super(Editor, self).resizeEvent(event)
-        # Fixed sidebar height
-        self._sidebar.setFixedHeight(self.height())
+        self._sidebar.redimensionar()
+        self._sidebar.update_viewport()
+
+    def keyPressEvent(self, event):
+        # key = event.key()
+        # if key == Qt.Key_Tab:
+        #     if self.snippets._current_snippet is not None:
+        #         self.snippets.select_next()
+        #     else:
+        #         self.snippets.insert_snippet()
+        # else:
+        super().keyPressEvent(event)
+
+    def paintEvent(self, event):
+        self._update_visible_blocks()
+        super().paintEvent(event)
+
+    def word_under_cursor(self, cursor=None):
+        """Returns QTextCursor that contains a word under passed cursor
+        or actual cursor"""
+        if cursor is None:
+            cursor = self.textCursor()
+        start_pos = end_pos = cursor.position()
+        while not cursor.atStart():
+            cursor.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor)
+            char = cursor.selectedText()[0]
+            selected_text = cursor.selectedText()
+            if (selected_text in self.word_separators and (
+                    selected_text != "n" and selected_text != "t") or
+                    char.isspace()):
+                break
+            start_pos = cursor.position()
+            cursor.setPosition(start_pos)
+        cursor.setPosition(end_pos)
+        while not cursor.atEnd():
+            cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor)
+            char = cursor.selectedText()[0]
+            selected_text = cursor.selectedText()
+            if (selected_text in self.word_separators and (
+                    selected_text != "n" and selected_text != "t") or
+                    char.isspace()):
+                break
+            end_pos = cursor.position()
+            cursor.setPosition(end_pos)
+        cursor.setPosition(start_pos)
+        cursor.setPosition(end_pos, QTextCursor.KeepAnchor)
+        return cursor
 
     def __cursor_position_changed(self):
-        extra_selections = []
-        _selection = QTextEdit.ExtraSelection()
-        extra_selections.append(_selection)
+        self.clear_selections("current_line")
 
-        # Highlight current line
-        if PSetting.HIGHLIGHT_CURRENT_LINE:
-            color = QColor(Qt.lightGray).lighter(125)
+        if self._highlight_line:
+            _selection = QTextEdit.ExtraSelection()
+            color = QColor("#fffde1")
             _selection.format.setBackground(color)
             _selection.format.setProperty(
                 QTextCharFormat.FullWidthSelection, True)
             _selection.cursor = self.textCursor()
             _selection.cursor.clearSelection()
-            extra_selections.append(_selection)
+            self.add_selection("current_line", [_selection])
 
         # Paren matching
-        extras = None
-        if PSetting.MATCHING_PARENTHESIS:
+        if CONFIG.get("matchParenthesis"):
+            self.clear_selections("parenthesis")
             extras = self.__check_brackets()
-        if extras is not None:
-            extra_selections.extend(extras)
-        self.setExtraSelections(extra_selections)
+            if extras is not None:
+                left, right = extras
+                self.add_selection("parenthesis", [left, right])
 
-    def set_font(self, font):
-        self.document().setDefaultFont(font)
+    def set_font(self, font_family, size):
+        font = QFont(font_family, size)
+        # self.setFont(font)
+        super().setFont(font)
 
     def __check_brackets(self):
         left, right = QTextEdit.ExtraSelection(), QTextEdit.ExtraSelection()
@@ -170,7 +258,7 @@ class Editor(QPlainTextEdit):
             _format.setBackground(Qt.red)
             left.format = _format
             left.cursor = cursor
-            return (left,)
+            return (left, right)
 
     def __match_left(self, block, char, start, found):
         while block.isValid():
@@ -212,18 +300,49 @@ class Editor(QPlainTextEdit):
             start = None
 
     def zoom_in(self):
-        font = self.document().defaultFont()
+        font = self.font()
         point_size = font.pointSize()
         point_size += 1
         font.setPointSize(point_size)
-        self.document().setDefaultFont(font)
+        self.setFont(font)
+
+    def setFont(self, font):
+        super().setFont(font)
+        self._sidebar.update_viewport()
+        self._sidebar.redimensionar()
 
     def zoom_out(self):
-        font = self.document().defaultFont()
+        font = self.font()
         point_size = font.pointSize()
         point_size -= 1
         font.setPointSize(point_size)
-        self.document().setDefaultFont(font)
+        self.setFont(font)
+
+    def show_run_cursor(self):
+        """Highlight momentarily a piece of code. Tomado de Ninja-IDE"""
+
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            # Get selection range
+            start_pos, end_pos = cursor.selectionStart(), cursor.selectionEnd()
+            cursor.clearSelection()
+            self.setTextCursor(cursor)
+        else:
+            # If no selected text, highlight current line
+            cursor.movePosition(QTextCursor.Start)
+            start_pos = cursor.position()
+            cursor.movePosition(QTextCursor.End)
+            end_pos = cursor.position()
+        # Create extra selection
+        selection = QTextEdit.ExtraSelection()
+        selection.format.setBackground(Qt.lightGray)
+        selection.cursor = QTextCursor(cursor)
+        selection.cursor.setPosition(start_pos)
+        selection.cursor.setPosition(end_pos, QTextCursor.KeepAnchor)
+        self.add_selection("run_cursor", [selection])
+        # Remove extra selection after 0.3 seconds
+        QTimer.singleShot(
+            300, lambda: self.clear_selections("run_cursor"))
 
     def saved(self):
         self.modified = False
@@ -231,7 +350,7 @@ class Editor(QPlainTextEdit):
         self.setFocus()
 
     def comment(self):
-        """ Comment one or more lines """
+        """Comment one or more lines"""
 
         tcursor = self.textCursor()
         block_start = self.document().findBlock(tcursor.selectionStart())
@@ -243,13 +362,13 @@ class Editor(QPlainTextEdit):
             if block_start.text():
                 tcursor.setPosition(block_start.position())
                 if block_start.text()[0] != '%':
-                    tcursor.insertText("%")
+                    tcursor.insertText("% ")
             block_start = block_start.next()
 
         tcursor.endEditBlock()
 
     def uncomment(self):
-        """ Uncomment one or more lines"""
+        """Uncomment one or more lines"""
 
         tcursor = self.textCursor()
         block_start = self.document().findBlock(tcursor.selectionStart())
@@ -265,3 +384,58 @@ class Editor(QPlainTextEdit):
             block_start = block_start.next()
 
         tcursor.endEditBlock()
+
+    def find_text(self, search, cs=False, wo=False,
+                  backward=False, find_next=True):
+        flags = QTextDocument.FindFlags()
+        if cs:
+            flags = QTextDocument.FindCaseSensitively
+        if wo:
+            flags |= QTextDocument.FindWholeWords
+        if backward:
+            flags |= QTextDocument.FindBackward
+        if find_next or backward:
+            self.moveCursor(QTextCursor.NoMove)
+        else:
+            self.moveCursor(QTextCursor.StartOfWord)
+        found = self.find(search, flags)
+        if not found:
+            cursor = self.textCursor()
+            if backward:
+                self.moveCursor(QTextCursor.End)
+            else:
+                self.moveCursor(QTextCursor.Start)
+            found = self.find(search, flags)
+            if not found:
+                self.setTextCursor(cursor)
+
+    def highlight_error(self, linenumber):
+        if linenumber == -1:
+            # Borro la selección
+            self.clear_selections('error')
+            return
+        selection = QTextEdit.ExtraSelection()
+        selection.cursor = self.textCursor()
+        selection.cursor.movePosition(QTextCursor.Start,
+                                      QTextCursor.MoveAnchor)
+        selection.cursor.movePosition(QTextCursor.Down, QTextCursor.MoveAnchor,
+                                      linenumber - 1)
+        selection.format.setProperty(QTextCharFormat.FullWidthSelection, True)
+        selection.format.setBackground(QColor("#DD4040"))
+        selection.format.setForeground(Qt.white)
+        self.add_selection('error', [selection])
+
+    def add_selection(self, selection_name, selections):
+        self._selections[selection_name] = selections
+        self.update_selections()
+
+    def update_selections(self):
+        selections = []
+        for selection_name, selection in self._selections.items():
+            selections.extend(selection)
+        self.setExtraSelections(selections)
+
+    def clear_selections(self, selection_name):
+        if selection_name in self._selections:
+            self._selections[selection_name] = []
+            self.update_selections()

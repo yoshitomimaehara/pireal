@@ -51,6 +51,9 @@ from src.core.interpreter.exceptions import (
     DuplicateRelationNameError
 )
 
+from src.core.interpreter import scanner
+from src.core.interpreter import lexer
+
 # TODO: Mover los nodos AST a un módulo rast
 
 
@@ -167,13 +170,18 @@ class Parser(object):
             self.token = self.lexer.next_token()
         else:
             raise ConsumeError(
-                "It is expected to find '{0}', "
-                "but '{1}' found, Line: {2}, Col: {3}".format(
-                    token_type,
-                    self.token.type,
-                    self.lexer.sc.lineno,
-                    self.lexer.sc.colno
-                ))
+                token_type,
+                self.token.type,
+                self.lexer.sc.lineno
+            )
+            # raise ConsumeError(
+            #     "It is expected to find '{0}', "
+            #     "but '{1}' found, Line: '{2}', Col: '{3}'".format(
+            #         token_type,
+            #         self.token.type,
+            #         self.lexer.sc.lineno,
+            #         self.lexer.sc.colno
+            #     ), self.lexer.sc.lineno, self.lexer.sc.colno)
 
     def parse(self):
         """
@@ -506,7 +514,7 @@ class Interpreter(NodeVisitor):
     def visit_Assignment(self, node):
         rname = self.visit(node.rname)
         if rname in self.SCOPE:
-            raise DuplicateRelationNameError(self.parser.lexer.sc.lineno)
+            raise DuplicateRelationNameError(rname)
         self.SCOPE[rname] = self.visit(node.query)
 
     def visit_BinaryOp(self, node):
@@ -571,3 +579,13 @@ class Interpreter(NodeVisitor):
 
     def clear(self):
         self.SCOPE.clear()
+
+
+def parse(query):
+    sc = scanner.Scanner(query)
+    lex = lexer.Lexer(sc)
+    parser = Parser(lex)
+    interpreter = Interpreter(parser)
+    interpreter.clear()
+    interpreter.to_python()
+    return interpreter.SCOPE

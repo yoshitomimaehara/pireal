@@ -24,10 +24,12 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QSplitter,
+    QMessageBox,
     QStackedWidget,
     QLabel,
     QDialog,
     QPushButton,
+    QLineEdit,
     QAction,
     QToolBar
 )
@@ -38,18 +40,13 @@ from PyQt5.QtCore import (
     QSize
 )
 
-from src.core.interpreter import (
-    scanner,
-    lexer,
-    parser
-)
+from src.core.interpreter import parser
 from src.core.interpreter.exceptions import (
     InvalidSyntaxError,
     MissingQuoteError,
     DuplicateRelationNameError,
     ConsumeError
 )
-from src.gui import lateral_widget
 from src.gui.main_window import Pireal
 from src.gui.query_container import (
     editor,
@@ -65,8 +62,9 @@ class QueryContainer(QWidget):
         super(QueryContainer, self).__init__(parent)
         self._parent = parent
         box = QVBoxLayout(self)
+        self.setObjectName("query_container")
         box.setContentsMargins(0, 0, 0, 0)
-
+        box.setSpacing(0)
         # Regex for validate variable name
         self.__validName = re.compile(r'^[a-z_]\w*$')
 
@@ -74,6 +72,11 @@ class QueryContainer(QWidget):
 
         # Tab
         self._tabs = tab_widget.TabWidget()
+        self._tabs.tabBar().setObjectName("tab_query")
+        self._tabs.setAutoFillBackground(True)
+        p = self._tabs.palette()
+        p.setColor(p.Window, Qt.white)
+        self._tabs.setPalette(p)
         box.addWidget(self._tabs)
 
         self.relations = {}
@@ -161,10 +164,10 @@ class QueryContainer(QWidget):
         # otherwise the query is all text that has the editor
         editor_widget = self.currentWidget().get_editor()
         if editor_widget.textCursor().hasSelection():
-            query = editor_widget.textCursor().selectedText()
+            query = "\n".join(
+                editor_widget.textCursor().selectedText().splitlines())
         else:
             query = editor_widget.toPlainText()
-
         relations = self.currentWidget().relations
         central = Pireal.get_service("central")
         table_widget = central.get_active_db().table_widget
@@ -173,52 +176,60 @@ class QueryContainer(QWidget):
         relations.clear()
         self.currentWidget().clear_results()
 
+        editor_widget.show_run_cursor()
+
         # Parse query
-        sc = scanner.Scanner(query)
-        lex = lexer.Lexer(sc)
+        error = True
         try:
-            par = parser.Parser(lex)
-            interpreter = parser.Interpreter(par)
-            interpreter.clear()
-            interpreter.to_python()
+            result = parser.parse(query)
         except MissingQuoteError as reason:
-            pireal = Pireal.get_service("pireal")
-            pireal.show_error_message(
-                self.tr("Missing quote on Line: {0}".format(
-                    reason.lineno)))
-            return
+            title = self.tr("Error de Sintáxis")
+            text = self.parse_error(str(reason))
         except InvalidSyntaxError as reason:
-            pireal = Pireal.get_service("pireal")
-            pireal.show_error_message(
-                self.tr("Invalid syntax on Line: {0}, Column {1}. "
-                        "The error start with <b>{2}</b>".format(
-                            reason.lineno, reason.column, reason.character)))
-            return
-        except DuplicateRelationNameError as duplicate_rname:
-            pireal = Pireal.get_service("pireal")
-            pireal.show_error_message(
-                self.tr("<b>{}</b> is a duplicate relation name. Please "
-                        "choose a unique name and re-execute the "
-                        "queries".format(
-                            duplicate_rname)), syntax_error=False)
-            return
+            title = self.tr("Error de Sintáxis")
+            text = self.parse_error(str(reason) + "\n" + self.tr(
+                "El error comienza con " + reason.character))
+        except DuplicateRelationNameError as reason:
+            title = self.tr("Nombre duplicado")
+            text = self.tr("Ya existe una relación con el nombre <b>{}</b> :(."
+                           "<br><br>Elige otro por favor ;).".format(
+                               reason.rname))
         except ConsumeError as reason:
-            pireal = Pireal.get_service("pireal")
-            pireal.show_error_message(self.parse_error(reason.__str__()))
+            title = self.tr("Error de Sintáxis")
+            text = self.parse_error(str(reason))
+        else:
+            error = False
+        if error:
+            QMessageBox.critical(self, title, text)
             return
         relations.update(table_widget.relations)
-        for relation_name, expression in list(interpreter.SCOPE.items()):
+        for relation_name, expression in result.items():
             try:
                 new_relation = eval(expression, {}, relations)
-
             except Exception as reason:
-                pireal = Pireal.get_service("pireal")
-                pireal.show_error_message(self.parse_error(reason.__str__()),
-                                          syntax_error=False)
+                QMessageBox.critical(
+                    self,
+                    self.tr("Error de Consulta"),
+                    self.parse_error(str(reason))
+                )
                 return
-
             relations[relation_name] = new_relation
             self.__add_table(new_relation, relation_name)
+
+    def _highlight_error_in_editor(self, line_error, col=-1):
+        weditor = self.currentWidget().get_editor()
+        if weditor.hasFocus():
+            weditor.highlight_error(line_error)
+            if line_error != -1:
+                cursor = weditor.textCursor()
+                saved_col = cursor.positionInBlock()
+                cursor.movePosition(cursor.Start)
+                cursor.movePosition(cursor.Down, n=line_error - 1)
+                if col != -1:
+                    cursor.movePosition(cursor.Right, n=col)
+                else:
+                    cursor.movePosition(cursor.Right, n=saved_col)
+                weditor.setTextCursor(cursor)
 
     @staticmethod
     def parse_error(text):
@@ -274,41 +285,41 @@ class QueryContainer(QWidget):
         if weditor.hasFocus():
             weditor.uncomment()
 
+    def search(self):
+        cw = self.currentWidget()
+        cw.show_search_widget()
+
+    def set_editor_focus(self):
+        cw = self.currentWidget()
+        if cw is not None:
+            cw.hide_search_widget()
+
 
 class QueryWidget(QWidget):
     editorModified = pyqtSignal(bool)
+    # Editor positions
+    TOP_POSITION = 0
+    LEFT_POSITION = 1
 
     def __init__(self):
         super(QueryWidget, self).__init__()
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
 
-        self._vsplitter = QSplitter(Qt.Vertical)
-        self._hsplitter = QSplitter(Qt.Horizontal)
-
-        self._result_list = lateral_widget.LateralWidget()
-        self._result_list.header().hide()
-        self._hsplitter.addWidget(self._result_list)
+        self._editor_splitter = QSplitter(Qt.Horizontal)
+        self.result_splitter = QSplitter(Qt.Vertical)
 
         self._stack_tables = QStackedWidget()
-        self._hsplitter.addWidget(self._stack_tables)
+        self.result_splitter.addWidget(self._stack_tables)
 
         self.relations = {}
         # Editor widget
         self._editor_widget = EditorWidget(self)
         self._editor_widget.editorModified[bool].connect(
             lambda modified: self.editorModified.emit(modified))
-        self._vsplitter.addWidget(self._editor_widget)
+        self._editor_splitter.addWidget(self._editor_widget)
 
-        self._vsplitter.addWidget(self._hsplitter)
-        box.addWidget(self._vsplitter)
-
-        # Connections
-        self._result_list.itemClicked.connect(
-            lambda index: self._stack_tables.setCurrentIndex(
-                self._result_list.row()))
-        self._result_list.itemDoubleClicked.connect(
-            self.show_relation)
+        box.addWidget(self._editor_splitter)
 
     def show_relation(self, item):
         central_widget = Pireal.get_service("central")
@@ -333,35 +344,52 @@ class QueryWidget(QWidget):
         """ Save sizes of Splitters """
 
         qsettings = QSettings(settings.SETTINGS_PATH, QSettings.IniFormat)
-        qsettings.setValue('hsplitter_query_sizes',
-                           self._hsplitter.saveState())
-        qsettings.setValue('vsplitter_query_sizes',
-                           self._vsplitter.saveState())
+        qsettings.setValue('result_splitter_query_sizes',
+                           self.result_splitter.saveState())
+        qsettings.setValue('editor_splitter_query_sizes',
+                           self._editor_splitter.saveState())
 
     def get_editor(self):
         return self._editor_widget.get_editor()
 
     def showEvent(self, event):
-        super(QueryWidget, self).showEvent(event)
-        self._hsplitter.setSizes([1, self.width() / 3])
+        super().showEvent(event)
+        # self.result_splitter.setSizes([1, self._result_list.width() * 0.1])
 
     def clear_results(self):
-        self._result_list.clear_items()
-        i = self._stack_tables.count()
+        central_widget = Pireal.get_service("central")
+        lateral_widget = Pireal.get_service("lateral_widget")
+        lateral_widget.result_list.clear_items()
+        table_widget = central_widget.get_active_db().table_widget
+        i = table_widget.stacked_result.count()
+        # i = self._stack_tables.count()
         while i >= 0:
-            widget = self._stack_tables.widget(i)
-            self._stack_tables.removeWidget(widget)
+            # widget = self._stack_tables.widget(i)
+            widget = table_widget.stacked_result.widget(i)
+            # self._stack_tables.removeWidget(widget)
+            table_widget.stacked_result.removeWidget(widget)
             if widget is not None:
                 widget.deleteLater()
             i -= 1
 
     def add_table(self, rela, rname):
         central_widget = Pireal.get_service("central")
+        lateral_widget = Pireal.get_service("lateral_widget")
         db = central_widget.get_active_db()
         _view = db.create_table(rela, rname, editable=False)
-        index = self._stack_tables.addWidget(_view)
-        self._stack_tables.setCurrentIndex(index)
-        self._result_list.add_item(rname, rela.cardinality())
+        table_widget = central_widget.get_active_db().table_widget
+        index = table_widget.stacked_result.addWidget(_view)
+        table_widget.stacked_result.setCurrentIndex(index)
+        lateral_widget.result_list.add_item(
+            rname, rela.cardinality(), rela.degree())
+        # lateral_widget.result_list.select_last()
+        table_widget._tabs.setCurrentIndex(1)
+
+    def show_search_widget(self):
+        self._editor_widget.show_search_widget()
+
+    def hide_search_widget(self):
+        self._editor_widget.hide_search_widget()
 
 
 class EditorWidget(QWidget):
@@ -373,8 +401,6 @@ class EditorWidget(QWidget):
         'redo_action',
         'cut_action',
         'paste_action',
-        '',
-        'execute_queries'
     ]
 
     editorModified = pyqtSignal(bool)
@@ -384,7 +410,7 @@ class EditorWidget(QWidget):
         vbox = QVBoxLayout(self)
         vbox.setContentsMargins(0, 0, 0, 0)
         vbox.setSpacing(0)
-
+        self.setStyleSheet("outline: none")
         hbox = QHBoxLayout()
         # Position
         self._column_str = "Col: {}"
@@ -399,10 +425,17 @@ class EditorWidget(QWidget):
                 self._toolbar.addAction(qaction)
             else:
                 self._toolbar.addSeparator()
-        hbox.addWidget(self._toolbar, 1)
-        hbox.addWidget(self._column_lbl)
+        # hbox.addWidget(self._toolbar, 1)
+        # hbox.addWidget(self._column_lbl)
+        vbox.addLayout(hbox)
         # Editor
         self._editor = editor.Editor()
+        vbox.addWidget(self._editor)
+        # Search widget
+        self._search_widget = SearchWidget(self)
+        self._search_widget.hide()
+        vbox.addWidget(self._search_widget)
+
         # Editor connections
         self._editor.customContextMenuRequested.connect(
             self.__show_context_menu)
@@ -416,8 +449,15 @@ class EditorWidget(QWidget):
             self.__on_copy_available)
         self._editor.cursorPositionChanged.connect(
             self._update_column_label)
-        vbox.addLayout(hbox)
-        vbox.addWidget(self._editor)
+
+    def show_search_widget(self):
+        self._search_widget.show()
+        self._search_widget._line_search.setFocus()
+        self._search_widget._execute_search(self._search_widget.search_text)
+
+    def hide_search_widget(self):
+        self._search_widget.hide()
+        self._search_widget._line_search.clear()
 
     def _update_column_label(self):
         col = str(self._editor.textCursor().columnNumber() + 1)
@@ -472,3 +512,41 @@ class EditorWidget(QWidget):
         cut_action.setEnabled(value)
         copy_action = Pireal.get_action("copy_action")
         copy_action.setEnabled(value)
+
+
+class SearchWidget(QWidget):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        box = QHBoxLayout(self)
+        box.setContentsMargins(0, 3, 0, 3)
+        box.setSpacing(0)
+        self._line_search = QLineEdit()
+        box.addWidget(self._line_search)
+        btn_find_previous = QPushButton("Find Previous")
+        box.addWidget(btn_find_previous)
+        btn_find_next = QPushButton("Find Next")
+        box.addWidget(btn_find_next)
+
+        self._parent = parent
+
+        self._line_search.textChanged.connect(self._execute_search)
+        btn_find_next.clicked.connect(self._find_next)
+        btn_find_previous.clicked.connect(self._find_previous)
+
+    def _find_next(self):
+        self._execute_search(find_next=True)
+
+    def _find_previous(self):
+        self._execute_search(backward=True)
+
+    def _execute_search(self, find_next=False, backward=False):
+        text = self.search_text
+        if not text:
+            return
+        weditor = self._parent._editor
+        weditor.find_text(text, find_next=find_next, backward=backward)
+
+    @property
+    def search_text(self):
+        return self._line_search.text()

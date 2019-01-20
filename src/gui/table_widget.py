@@ -19,29 +19,121 @@
 
 from PyQt5.QtWidgets import (
     QWidget,
+    QSplitter,
+    QTabWidget,
+    QToolButton,
     QVBoxLayout,
-    QStackedWidget
+    QStackedWidget,
+    QMessageBox,
+    QMenu
 )
+from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtCore import Qt
 from src.gui import (
     view,
     model,
     delegate
 )
+from src.core import relation
+from src.gui.main_window import Pireal
 
 
-class TableWidget(QWidget):
+class TableWidget(QSplitter):
 
     def __init__(self):
         super(TableWidget, self).__init__()
 
-        vbox = QVBoxLayout(self)
-        vbox.setContentsMargins(0, 0, 0, 0)
+        # vbox = QVBoxLayout(self)
+        # vbox.setContentsMargins(0, 0, 0, 0)
+
+        self._tabs = QTabWidget()
+        self._tabs.setAutoFillBackground(True)
+        p = self._tabs.palette()
+        p.setColor(p.Window, QColor("white"))
+        self._tabs.setPalette(p)
+        self._other_tab = QTabWidget()
+        self._other_tab.setAutoFillBackground(True)
+        self._other_tab.setPalette(p)
+        self.addWidget(self._tabs)
+        self.addWidget(self._other_tab)
+        self.setSizes([1, 1])
+        self._other_tab.hide()
 
         self.relations = {}
 
         # Stack
         self.stacked = QStackedWidget()
-        vbox.addWidget(self.stacked)
+        self._tabs.addTab(self.stacked, "Workspace")
+        self.stacked_result = QStackedWidget()
+        self._tabs.addTab(self.stacked_result, self.tr("Resultados"))
+
+        btn_split = QToolButton()
+        btn_split.setToolTip(self.tr("Click para dividir la pantalla"))
+        btn_split.setAutoRaise(True)
+        btn_split.setIcon(QIcon(":img/split"))
+        self._tabs.setCornerWidget(btn_split)
+        btn_split.clicked.connect(self._split)
+        btn_split = QToolButton()
+        btn_split.setToolTip(self.tr("Click para juntar las pantallas"))
+        btn_split.setAutoRaise(True)
+        btn_split.setIcon(QIcon(":img/split"))
+        btn_split.clicked.connect(self._unsplit)
+        self._other_tab.setCornerWidget(btn_split)
+        # self.setContextMenuPolicy(Qt.CustomContextMenu)
+        # self.customContextMenuRequested.connect(self._show_menu)
+
+        lateral_widget = Pireal.get_service("lateral_widget")
+        lateral_widget.resultClicked.connect(self._on_result_list_clicked)
+        lateral_widget.resultSelectionChanged.connect(
+            lambda index: self.stacked_result.setCurrentIndex(index))
+        # lateral_widget.newRowsRequested.connect(self._insert_rows)
+
+    def insert_rows(self, tuplas):
+        current_view = self.current_table()
+        if current_view is not None:
+            model = current_view.model()
+            for tupla in tuplas:
+                model.insertRow(model.rowCount(), tupla)
+        current_view.adjust_columns()
+
+    def _on_result_list_clicked(self, index):
+        self.stacked_result.setCurrentIndex(index)
+        if not self._other_tab.isVisible():
+            self._tabs.setCurrentIndex(1)
+
+    def _unsplit(self):
+        self._other_tab.hide()
+        result_widget = self._other_tab.widget(0)
+        self._tabs.addTab(result_widget, self.tr("Resultados"))
+        self._tabs.cornerWidget().show()
+
+    def _split(self):
+        result_widget = self._tabs.widget(1)
+        self._other_tab.addTab(result_widget, self.tr("Resultados"))
+        self._other_tab.show()
+        self.setSizes([1, 1])
+        self._tabs.cornerWidget().hide()
+        self.setOrientation(Qt.Horizontal)
+
+    def _show_menu(self, position):
+        menu = QMenu(self)
+
+        if self.count() > 0:
+            add_tuple_action = menu.addAction(self.tr("Agregar Tupla"))
+            add_col_action = menu.addAction(self.tr("Add Column"))
+
+            add_tuple_action.triggered.connect(self.add_tuple)
+            add_col_action.triggered.connect(self.add_column)
+            menu.addSeparator()
+
+        add_relation_action = menu.addAction(self.tr("Create new Relation"))
+        add_relation_action.triggered.connect(self.__new_relation)
+
+        menu.exec_(self.mapToGlobal(position))
+
+    def __new_relation(self):
+        central_service = Pireal.get_service("central")
+        central_service.create_new_relation()
 
     def count(self):
         return self.stacked.count()

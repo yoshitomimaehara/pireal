@@ -1,30 +1,55 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright 2015 - Gabriel Acosta <acostadariogabriel@gmail.com>
-#
-# This file is part of Pireal.
-#
-# Pireal is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3 of the License, or
-# any later version.
-#
-# Pireal is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Pireal; If not, see <http://www.gnu.org/licenses/>.
+import pytest
 
-import unittest
 from src.core import file_manager
 
 
-class FileManagerTestCase(unittest.TestCase):
+@pytest.mark.parametrize(
+    'filename, expected',
+    [
+        ('/home/gabo/archivo.py', '.py'),
+        ('/path/path/blabla/file.extension', '.extension'),
+        ('/hola/como/estas/que_onda.qda', '.qda')
+    ]
+)
+def test_get_extension(filename, expected):
+    assert file_manager.get_extension(filename) == expected
 
-    def test_get_extension(self):
-        filename = "/home/gabo/database.pdb"
-        expected = ".pdb"
-        extension = file_manager.get_extension(filename)
-        self.assertEqual(expected, extension)
+
+@pytest.mark.parametrize(
+    'filename, name',
+    [
+        ('/home/gabo/archivo.py', 'archivo'),
+        ('/path/path/blabla/file.extension', 'file'),
+        ('/hola/como/estas/que_onda.qda', 'que_onda')
+    ]
+)
+def test_get_basename(filename, name):
+    assert file_manager.get_basename(filename) == name
+
+
+@pytest.mark.parametrize(
+    'filename, path',
+    [
+        ('/home/gabo/archivo.py', '/home/gabo'),
+        ('/path/path/blabla/file.extension', '/path/path/blabla'),
+        ('/hola/como/estas/que_onda.qda', '/hola/como/estas')
+    ]
+)
+def test_get_path(filename, path):
+    assert file_manager.get_path(filename) == path
+
+
+def test_get_files_from_folder(tmpdir):
+    files = (
+        'archivo.py',
+        'archivo2.py',
+        'archivo3.py'
+    )
+    assert len(tmpdir.listdir()) == 0
+    for f in files:
+        path = tmpdir.join(f)
+        # print(path)
+        path.write("Some content")
+    assert len(tmpdir.listdir()) == len(files)
+    _files = file_manager.get_files_from_folder(tmpdir.strpath)
+    assert len(_files) == len(files)

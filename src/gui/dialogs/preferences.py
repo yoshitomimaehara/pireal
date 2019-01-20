@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QFontDialog
 )
+from PyQt5.QtGui import QFont
 from PyQt5.QtQuickWidgets import QQuickWidget
 from PyQt5.QtCore import (
     QUrl,
@@ -39,7 +40,7 @@ from src.core import (
 )
 from src.gui import updater
 from src.gui.main_window import Pireal
-
+from src.core.settings import CONFIG
 
 # TODO: verificar el estado de los checkboxes si son distintos al cambiar
 
@@ -64,18 +65,19 @@ class Preferences(QDialog):
             settings.LANGUAGE_PATH)
         langs = ["English"] + available_langs
         self.__root.addLangsToCombo(langs)
-        if settings.PSetting.LANGUAGE:
-            self.__root.setCurrentLanguage(settings.PSetting.LANGUAGE)
 
-        # Fuentes
-        font = settings.PSetting.FONT
-        self.__root.setFontFamily(font.family(),
-                                  font.pointSize())
+        self.__root.setCurrentLanguage(CONFIG.get("language"))
 
-        # Estados iniciales en los checkboxes
-        cur_line_state = settings.PSetting.HIGHLIGHT_CURRENT_LINE
-        match_paren_state = settings.PSetting.MATCHING_PARENTHESIS
-        self.__root.setInitialStates(cur_line_state, match_paren_state)
+        font = CONFIG.get("fontFamily")
+        size = CONFIG.get("fontSize")
+        if font is None:
+            font, size = CONFIG._get_font()
+
+        self.__root.setFontFamily(font, size)
+
+        self.__root.setInitialStates(
+            CONFIG.get("highlightCurrentLine"),
+            CONFIG.get("matchParenthesis"))
 
         # Conexiones
         self.__root.close.connect(lambda: self.settingsClosed.emit())
@@ -90,10 +92,14 @@ class Preferences(QDialog):
 
     @pyqtSlot()
     def __change_font(self):
-        initial_font = settings.PSetting.FONT
-        font, ok = QFontDialog.getFont(initial_font, self)
+        font = CONFIG.get("fontFamily")
+        size = CONFIG.get("fontSize")
+        if font is None:
+            font, size = CONFIG._get_font()
+        font, ok = QFontDialog.getFont(QFont(font, size), self)
         if ok:
-            # FIXME: cambiar aunque no esté el editor
+            CONFIG.set_value("fontFamily", font.family())
+            CONFIG.set_value("fontSize", font.pointSize())
             central = Pireal.get_service("central")
             mcontainer = central.get_active_db()
             if mcontainer is not None:
@@ -101,24 +107,17 @@ class Preferences(QDialog):
                 if query_widget is not None:
                     weditor = query_widget.get_editor()
                     if weditor is not None:
-                        qs = QSettings(settings.SETTINGS_PATH,
-                                       QSettings.IniFormat)
-                        weditor.set_font(font)
-                        qs.setValue("font", font)
+                        weditor.set_font(font.family(), font.pointSize())
             # Cambio el texto en la interfáz QML
             self.__root.setFontFamily(font.family(), font.pointSize())
 
     @pyqtSlot(bool)
     def __on_state_current_line_changed(self, state):
-        qsettings = QSettings(settings.SETTINGS_PATH, QSettings.IniFormat)
-        qsettings.setValue('highlight_current_line', state)
-        settings.PSetting.HIGHLIGHT_CURRENT_LINE = state
+        CONFIG.set_value("highlightCurrentLine", state)
 
     @pyqtSlot(bool)
     def __on_state_matching_parenthesis_changed(self, state):
-        qsettings = QSettings(settings.SETTINGS_PATH, QSettings.IniFormat)
-        qsettings.setValue('matching_parenthesis', state)
-        settings.PSetting.MATCHING_PARENTHESIS = state
+        CONFIG.set_value("matchParenthesis", state)
 
     @pyqtSlot('QString')
     def __change_language(self, lang):

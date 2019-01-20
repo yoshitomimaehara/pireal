@@ -35,10 +35,9 @@ class View(QTableView):
 
     def __init__(self):
         super(View, self).__init__()
-        self.setAlternatingRowColors(True)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # self.setAlternatingRowColors(True)
         self.verticalHeader().hide()
-        self.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
         # Scroll content per pixel
         self.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
@@ -57,6 +56,7 @@ class View(QTableView):
             width = header.sectionSize(column)
             header.setSectionResizeMode(column, QHeaderView.Interactive)
             header.resizeSection(column, width)
+        self.horizontalHeader().setMinimumHeight(32)
 
 
 class Header(QHeaderView):

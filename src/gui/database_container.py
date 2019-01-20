@@ -56,20 +56,19 @@ logger = Logger(__name__)
 
 class DatabaseContainer(QSplitter):
 
-    def __init__(self, orientation=Qt.Vertical):
+    def __init__(self, orientation=Qt.Horizontal):
         QSplitter.__init__(self, orientation)
         self.pfile = None
-        self._hsplitter = QSplitter(Qt.Horizontal)
 
         self.lateral_widget = lateral_widget.LateralWidget()
-        self._hsplitter.addWidget(self.lateral_widget)
         self.table_widget = table_widget.TableWidget()
-        self._hsplitter.addWidget(self.table_widget)
-
-        self.addWidget(self._hsplitter)
-
         self.query_container = query_container.QueryContainer(self)
-        self.addWidget(self.query_container)
+
+        self._vsplitter = QSplitter(Qt.Vertical)
+        self._vsplitter.addWidget(self.table_widget)
+        self._vsplitter.addWidget(self.query_container)
+        self.addWidget(self.lateral_widget)
+        self.addWidget(self._vsplitter)
 
         self.modified = False
 
@@ -77,17 +76,21 @@ class DatabaseContainer(QSplitter):
 
         # Connections
         # FIXME
-        self.lateral_widget.itemClicked.connect(
-            lambda: self.table_widget.stacked.setCurrentIndex(
-                self.lateral_widget.row()))
+        self.lateral_widget.relationClicked.connect(self._on_relation_clicked)
+
+            # lambda i: self.table_widget.stacked.setCurrentIndex(i))
         # For change table widget item when up/down
         # see issue #39
-        self.lateral_widget.itemSelectionChanged.connect(
-            lambda: self.table_widget.stacked.setCurrentIndex(
-                self.lateral_widget.row()))
+        self.lateral_widget.relationSelectionChanged.connect(
+            lambda i: self.table_widget.stacked.setCurrentIndex(i))
         self.query_container.saveEditor['PyQt_PyObject'].connect(
             self.save_query)
         self.setSizes([1, 1])
+
+    def _on_relation_clicked(self, index):
+        if not self.table_widget._other_tab.isVisible():
+            self.table_widget._tabs.setCurrentIndex(0)
+        self.table_widget.stacked.setCurrentIndex(index)
 
     def dbname(self):
         """ Return display name """
@@ -110,7 +113,6 @@ class DatabaseContainer(QSplitter):
             # Relleno el objeto con las tuplas
             for _tuple in tuples:
                 rela.insert(_tuple)
-
             # Se usa el patrón Modelo/Vista/Delegado
             # Para entender más, leer el código de cáda módulo
             # src.gui.model
@@ -122,10 +124,10 @@ class DatabaseContainer(QSplitter):
             # Add table to stacked
             self.table_widget.stacked.addWidget(_view)
             # Add table name to list widget
-            self.lateral_widget.add_item(table_name, str(rela.cardinality()))
+            self.lateral_widget.relation_list.add_item(
+                table_name, rela.cardinality(), rela.degree())
         # Select first item
-        first_item = self.lateral_widget.topLevelItem(0)
-        first_item.setSelected(True)
+        # self.lateral_widget.relation_list.select_first()
 
     def create_table(self, relation_obj, relation_name, editable=True):
         """ Se crea la vista, el model y el delegado para @relation_obj """
@@ -150,7 +152,8 @@ class DatabaseContainer(QSplitter):
 
     @pyqtSlot(int)
     def __on_cardinality_changed(self, value):
-        self.lateral_widget.update_item(value)
+        # self.lateral_widget.update_item(value)
+        self.lateral_widget.relation_list.update_cardinality(value)
 
     def load_relation(self, filenames):
         for filename in filenames:
@@ -163,73 +166,63 @@ class DatabaseContainer(QSplitter):
                     rel.insert(i)
                 relation_name = file_manager.get_basename(filename)
                 if not self.table_widget.add_relation(relation_name, rel):
-                    QMessageBox.information(self, self.tr("Information"),
-                                            self.tr("There is already a "
-                                                    "relationship with name "
+                    QMessageBox.information(self, self.tr("Información"),
+                                            self.tr("Ya existe una relación "
+                                                    "con el nombre  "
                                                     "'{}'".format(
                                                         relation_name)))
                     return False
 
             self.table_widget.add_table(rel, relation_name)
-            self.lateral_widget.add_item(relation_name, rel.cardinality())
+            # self.lateral_widget.add_item(relation_name, rel.cardinality())
             return True
 
     def delete_relation(self):
-        selected_items = self.lateral_widget.selectedItems()
-        if not selected_items:
-            return False
-        current_row = 0
-        if self.lateral_widget.row() != -1:
-            current_row = self.lateral_widget.row()
-        if len(selected_items) > 1:
-            msg = self.tr("Are you sure you want to delete "
-                          "the selected relations?")
-        else:
-            msg = self.tr("Are you sure you want to delete "
-                          "the relation <b>{}</b>?".format(
-                              self.lateral_widget.item_text(current_row)))
+        name = self.lateral_widget.relation_list.current_text()
+        index = self.lateral_widget.relation_list.current_index()
+        if not name:
+            return
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Question)
-        msgbox.setWindowTitle(self.tr("Confirmation"))
-        msgbox.setText(msg)
-        msgbox.addButton(self.tr("No"), QMessageBox.NoRole)
-        yes_btn = msgbox.addButton(self.tr("Yes"), QMessageBox.YesRole)
+        msgbox.setWindowTitle(self.tr("Confirmación"))
+        msgbox.setText(
+            self.tr("Está seguro de eliminar la relación <b>{}</b>?".format(
+                name)))
+        msgbox.addButton(self.tr("No!"), QMessageBox.NoRole)
+
+        si = msgbox.addButton(self.tr("Si, estoy seguro"), QMessageBox.YesRole)
         palette = QPalette()
         palette.setColor(QPalette.Button, QColor("#cc575d"))
         palette.setColor(QPalette.ButtonText, QColor("white"))
-        yes_btn.setPalette(palette)
+        si.setPalette(palette)
         msgbox.exec_()
-        r = msgbox.clickedButton()
-        if r == yes_btn:
-            for item in selected_items:
-                index = self.lateral_widget.indexOfTopLevelItem(item)
-                # Remove from list
-                self.lateral_widget.takeTopLevelItem(index)
-                # Remove table
-                self.table_widget.remove_table(index)
-                # Remove relation
-                self.table_widget.remove_relation(item.name)
+        if msgbox.clickedButton() == si:
+            self.lateral_widget.relation_list.remove_item(index)
+            self.table_widget.remove_table(index)
+            self.table_widget.remove_relation(name)
             return True
+        return False
 
     def __on_data_table_changed(self, row, col, data):
-        current_relation = self.lateral_widget.current_text()
-        # Relation to be update
-        rela = self.table_widget.relations.get(current_relation)
-        # Clear old content
-        rela.clear()
-        current_table = self.table_widget.stacked.currentWidget()
-        model = current_table.model()
-        for i in range(model.rowCount()):
-            reg = []
-            for j in range(model.columnCount()):
-                if row == i and col == j:
-                    reg.append(data)
-                else:
-                    reg.append(model.item(i, j).text())
-            # Insert new content
-            rela.insert(reg)
-        # Update relation
-        self.table_widget.relations[current_relation] = rela
+        # current_relation = self.lateral_widget.current_text()
+        # # Relation to be update
+        # rela = self.table_widget.relations.get(current_relation)
+        # # Clear old content
+        # rela.clear()
+        # current_table = self.table_widget.stacked.currentWidget()
+        # model = current_table.model()
+        # for i in range(model.rowCount()):
+        #     reg = []
+        #     for j in range(model.columnCount()):
+        #         if row == i and col == j:
+        #             reg.append(data)
+        #         else:
+        #             reg.append(model.item(i, j).text())
+        #     # Insert new content
+        #     rela.insert(reg)
+        # # Update relation
+        # self.table_widget.relations[current_relation] = rela
+        pass
 
     def new_query(self, filename):
         editor_tab_at = self.query_container.is_open(filename)
@@ -260,14 +253,15 @@ class DatabaseContainer(QSplitter):
             editor.pfile.save(data=content)
         except Exception as reason:
             QMessageBox.critical(self, "Error",
-                                 self.tr("The file couldn't be saved!"
+                                 self.tr("El archivo no se puede abrir!"
                                          "\n\n{}".format(reason)))
             return False
         editor.saved()
         return editor.pfile.filename
 
     def save_query_as(self, editor=None):
-        filename = QFileDialog.getSaveFileName(self, self.tr("Save File"),
+        filename = QFileDialog.getSaveFileName(self,
+                                               self.tr("Guardar Archivo"),
                                                editor.name,
                                                "Pireal query files(*.pqf)")
         filename = filename[0]
@@ -292,23 +286,23 @@ class DatabaseContainer(QSplitter):
     def showEvent(self, event):
         QSplitter.showEvent(self, event)
         qsettings = QSettings(settings.SETTINGS_PATH, QSettings.IniFormat)
-        hsizes = qsettings.value('hsplitter_sizes', None)
-        if hsizes is not None:
-            self._hsplitter.restoreState(hsizes)
-        else:
-            self._hsplitter.setSizes([1, self._hsplitter.width() / 3])
         vsizes = qsettings.value('vsplitter_sizes', None)
         if vsizes is not None:
-            self.restoreState(vsizes)
+            self._vsplitter.restoreState(vsizes)
         else:
-            self.setSizes([self.height() / 3, self.height() / 3])
+            self._vsplitter.setSizes([self.height() / 3, self.height() / 6])
+        hsizes = qsettings.value('hsplitter_sizes', None)
+        if hsizes is not None:
+            self.restoreState(hsizes)
+        else:
+            self.setSizes([self.width() / 10, self.width() / 3])
 
     def save_sizes(self):
         """ Save sizes of Splitters """
 
         qsettings = QSettings(settings.SETTINGS_PATH, QSettings.IniFormat)
-        qsettings.setValue('hsplitter_sizes',
-                           self._hsplitter.saveState())
         qsettings.setValue('vsplitter_sizes',
+                           self._vsplitter.saveState())
+        qsettings.setValue('hsplitter_sizes',
                            self.saveState())
         # FIXME: save sizes of query container

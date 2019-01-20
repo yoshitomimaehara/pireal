@@ -67,12 +67,14 @@ class CustomInstall(install):
         if self.root is None:
             build_dir = data_dir
         else:
+
             build_dir = os.path.join(self.root, data_dir[1:])
             apps_dir = os.path.join(self.root, apps_dir[1:])
 
         self.install_lib = build_dir
         self._custom_data_dir = data_dir
         self._custom_apps_dir = apps_dir
+
 
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -92,7 +94,7 @@ DESCRIPTION = ""
 
 setup(
     name="pireal",
-    version="2.0.2",
+    version="3.0",
     description="",
     author="Gabriel Acosta",
     author_email="acostadariogabriel@gmail.com",

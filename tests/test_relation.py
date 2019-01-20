@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015 - Gabriel Acosta <acostadariogabriel@gmail.com>
+# Copyright 2015-2018 - Gabriel Acosta <acostadariogabriel@gmail.com>
 #
 # This file is part of Pireal.
 #
@@ -17,221 +17,262 @@
 # You should have received a copy of the GNU General Public License
 # along with Pireal; If not, see <http://www.gnu.org/licenses/>.
 
-import unittest
+import pytest
+
 from src.core import relation
 
 
-class RelationTestCase(unittest.TestCase):
+@pytest.fixture
+def relation_fixture():
+    r1 = relation.Relation()
+    r1.header = ["id", "name", "city"]
+    data = {
+        ("1", "Gabriel", "Belén"),
+        ("23", "Rodrigo", "Belén"),
+        ("12", "Mercedes", "Las Juntas"),
+        ("2", "Diego", "Santiago del Estero")
+    }
+    for d in data:
+        r1.insert(d)
 
-    def setUp(self):
-        # Relation 1
-        self.r1 = relation.Relation()
-        # Fields
-        f1 = ['id', 'name', 'city']
-        self.r1.header = f1
+    r2 = relation.Relation()
+    r2.header = ["id", "skill"]
+    data = {
+        ("3", "Ruby"),
+        ("1", "Python"),
+        ("12", "Rocas"),
+        ("23", "Games")
+    }
+    for d in data:
+        r2.insert(d)
 
-        # Data
-        data1 = [['1', 'Gabriel', 'Belén'], ['23', 'Rodrigo', 'Belén']]
-        for i in data1:
-            self.r1.insert(i)
-
-        # Relation 2
-        self.r2 = relation.Relation()
-        # Fields
-        f2 = ['id', 'skill']
-        self.r2.header = f2
-        # Data
-        data2 = [['3', 'Ruby'], ['1', 'Python']]
-        for i in data2:
-            self.r2.insert(i)
-
-        # Relation 3
-        self.r3 = relation.Relation()
-        # Fields
-        self.r3.header = ['date']
-        data3 = [["2015-12-12"], ["2012-07-09"], ["1998-12-09"]]
-        for i in data3:
-            self.r3.insert(i)
-
-        # Relation 4
-        self.r4 = relation.Relation()
-        self.r4.header = ['id', 'skill']
-        data4 = [["192", "Ruby"], ["43", "Go"]]
-        for i in data4:
-            self.r4.insert(i)
-
-    def test_projection(self):
-        # Π name (r1)
-        expected = [['Gabriel'], ['Rodrigo']]
-        rproject = self.r1.project("name")
-        project = rproject.content.content
-        self.assertEqual(expected, project)
-
-    def test_selection(self):
-        # σ id == 23 (r2)
-        expected = [['23', 'Rodrigo', 'Belén']]
-        rselect = self.r1.select("id == 23")
-        select = rselect.content.content
-        self.assertEqual(expected, select)
-
-    def test_cardinality(self):
-        expected = 3
-        self.assertEqual(self.r3.cardinality(), expected)
-
-    def test_degree(self):
-        expected = 1
-        self.assertEqual(self.r3.degree(), expected)
-
-    def test_update(self):
-        # Antes
-        # [["192", "Ruby"], ["43", "Go"]]
-        # Después
-        # [["192", "Ruby"], ["32", "Go!"]]
-        expected = [
-            ['192', 'Ruby'],
-            ['32', 'Go!']
-        ]
-        self.r4.update(1, 0, '32')
-        self.r4.update(1, 1, 'Go!')
-        self.assertEqual(self.r4.content.content, expected)
-
-    def test_cartesian_product(self):
-        # r2 x r3
-        expected = [
-            ['3', 'Ruby', '2015-12-12'],
-            ['3', 'Ruby', '2012-07-09'],
-            ['3', 'Ruby', '1998-12-09'],
-            ['1', 'Python', '2015-12-12'],
-            ['1', 'Python', '2012-07-09'],
-            ['1', 'Python', '1998-12-09']
-        ]
-        rproduct = self.r2.product(self.r3)
-        product = rproduct.content.content
-        self.assertEqual(expected, product)
-
-    def test_natural_join(self):
-        # r1 ⋈ r2
-        expected = [['1', 'Gabriel', 'Belén', 'Python']]
-        rjoin = self.r1.njoin(self.r2)
-        njoin = rjoin.content.content
-        self.assertEqual(expected, njoin)
-
-    def test_louter(self):
-        expected = [
-            ['1', 'Gabriel', 'Belén', 'Python'],
-            ['23', 'Rodrigo', 'Belén', 'null']
-        ]
-        louter = self.r1.louter(self.r2)
-        self.assertEqual(louter.content.content, expected)
-
-    def test_router(self):
-        expected = [
-            ['3', 'null', 'null', 'Ruby'],
-            ['1', 'Gabriel', 'Belén', 'Python']
-        ]
-        router = self.r1.router(self.r2)
-        self.assertEqual(router.content.content, expected)
-
-    def test_fullouter(self):
-        expected = [
-            ['3', 'null', 'null', 'Ruby'],
-            ['1', 'Gabriel', 'Belén', 'Python'],
-            ['23', 'Rodrigo', 'Belén', 'null'],
-        ]
-        full_outer = self.r1.fouter(self.r2)
-        self.assertEqual(full_outer.content.content, expected)
-
-    def test_intersection(self):
-        project_idr1 = self.r1.project("id")
-        project_idr2 = self.r2.project("id")
-        expected = [['1']]
-        # project_idr1 ∩ project_idr2
-        intersection = project_idr1.intersect(project_idr2).content.content
-        self.assertEqual(expected, intersection)
-
-    def test_difference(self):
-        # r4 - r2
-        project_idr4 = self.r4.project("id")
-        project_idr2 = self.r2.project("id")
-        expected = [['192'], ['43']]
-        difference = project_idr4.difference(project_idr2).content.content
-        self.assertEqual(expected, difference)
-
-    def test_intersection_alternative(self):
-        project_idr1 = self.r1.project("id")
-        project_idr2 = self.r2.project("id")
-        expected = [['1']]
-        # Intersection using difference r1 - (r1 - r2)
-        diff = project_idr1.difference(project_idr2)
-        union = project_idr1.difference(diff).content.content
-        self.assertEqual(expected, union)
-
-    def test_union(self):
-        # r2 ∪ r4
-        expected = [
-            ['3', 'Ruby'],
-            ['1', 'Python'],
-            ["192", "Ruby"],
-            ["43", "Go"]
-        ]
-        union = self.r2.union(self.r4).content.content
-        self.assertEqual(expected, union)
-
-    def test_append_row(self):
-        rela = relation.Relation()
-        rela.header = ['id', 'name', 'city']
-        content = [
-            ['1', 'Gabriel', 'Belén'],
-            ['23', 'Rodrigo', 'Belén']
-        ]
-        for t in content:
-            rela.insert(t)
-        expected_header = ['id', 'name', 'city']
-        expected_content = [
-            ['1', 'Gabriel', 'Belén'],
-            ['23', 'Rodrigo', 'Belén'],
-            ['null', 'null', 'null']
-        ]
-        rela.append_row()
-        self.assertEqual(expected_header, rela.header)
-        self.assertEqual(expected_content, rela.content.content)
-
-    def test_append_column(self):
-        rela = relation.Relation()
-        rela.header = ['id', 'name', 'city']
-        content = [
-            ['1', 'Gabriel', 'Belén'],
-            ['23', 'Rodrigo', 'Belén']
-        ]
-        for t in content:
-            rela.insert(t)
-        expected_header = ['id', 'name', 'city', 'null']
-        expected_content = [
-            ['1', 'Gabriel', 'Belén', 'null'],
-            ['23', 'Rodrigo', 'Belén', 'null']
-        ]
-        rela.append_column()
-        self.assertEqual(expected_header, rela.header)
-        self.assertEqual(expected_content, rela.content.content)
-
-    def test_remove_column(self):
-        rela = relation.Relation()
-        rela.header = ['id', 'name', 'city']
-        content = [
-            ['1', 'Gabriel', 'Belén'],
-            ['23', 'Rodrigo', 'Belén']
-        ]
-        for t in content:
-            rela.insert(t)
-        expected_header = ['id', 'city']
-        expected_content = [
-            ['1', 'Belén'],
-            ['23', 'Belén']
-        ]
-        rela.remove_column(1)
-        self.assertEqual(expected_header, rela.header)
-        self.assertEqual(expected_content, rela.content.content)
+    r3 = relation.Relation()
+    r3.header = ["date"]
+    data = {
+        ("2015-12-12"),
+        ("2012-07-09"),
+        ("1998-12-09")
+    }
+    for d in data:
+        r3.insert(d)
+    return r1, r2, r3
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_valid_header():
+    r = relation.Relation()
+    with pytest.raises(relation.InvalidFieldNameError):
+        r.header = ["id", "nombre foo", "skills"]
+
+
+def test_cardinality():
+    r = relation.Relation()
+    r.header = ["id", "nombre"]
+    for i in {("1", "gabriel"), ("3", "rodrigo"), ("2", "mechi")}:
+        r.insert(i)
+    assert r.cardinality() == 3
+
+
+def test_wrong_size_relation():
+    r = relation.Relation()
+    r.header = ["aaa", "bbb"]
+    data = {
+        ("a", "b", "c", "d"),
+        ("e", "f", "g", "h")
+    }
+    with pytest.raises(relation.WrongSizeError):
+        for d in data:
+            r.insert(d)
+
+
+def test_projection(relation_fixture):
+    # r1 projection
+    r1, _, r3 = relation_fixture
+    expected = {("Gabriel",), ("Rodrigo",), ("Mercedes",), ("Diego",)}
+    assert r1.project("name").content == expected
+    expected = {("2015-12-12",), ("2012-07-09",), ("1998-12-09",)}
+    assert r3.project("date").content == expected
+
+
+def test_invalid_field_in_projection(relation_fixture):
+    # r2 projection
+    _, r2, _ = relation_fixture
+    with pytest.raises(relation.FieldNotInHeaderError):
+        r2.project("cualquiera")
+
+
+def test_selection(relation_fixture):
+
+    r1, _, _ = relation_fixture
+    expected = {("23", "Rodrigo", "Belén")}
+    assert r1.select("id==23").content == expected
+
+
+def test_selection2():
+    r = relation.Relation()
+    r.header = ["precio", "curso"]
+    data = {
+        ("400", "curso1"),
+        ("104", "curso2"),
+        ("500", "curso3"),
+        ("1000", "curso4"),
+        ("200", "curso5")
+    }
+    for d in data:
+        r.insert(d)
+    assert r.cardinality() == 5
+    assert r.degree() == 2
+    sel = r.select("precio > 400")
+    expected = {("500", "curso3"), ("1000", "curso4")}
+    assert sel.content == expected
+
+
+def test_selection3():
+    r = relation.Relation()
+    r.header = ["curso", "precio"]
+    data = {
+        ("curso1", "400"),
+        ("curso2", "104"),
+        ("curso3", "500"),
+        ("curso4", "1000"),
+        ("curso5", "200")
+    }
+    for d in data:
+        r.insert(d)
+    assert r.cardinality() == 5
+    assert r.degree() == 2
+    sel = r.select("precio > 400")
+    expected = {("curso3", "500"), ("curso4", "1000")}
+    assert sel.content == expected
+
+
+def test_combination(relation_fixture):
+    r1, r2, r3 = relation_fixture
+    join_natural = r1.njoin(r2)
+    projection = join_natural.project("name", "skill")
+    expected = {
+        ("Gabriel", "Python"),
+        ("Rodrigo", "Games"),
+        ("Mercedes", "Rocas")
+    }
+    assert projection.cardinality() == 3
+    assert projection.degree() == 2
+    assert projection.content == expected
+
+
+def test_product(relation_fixture):
+    expected = {
+        ("1", "Gabriel", "Belén", "2015-12-12"),
+        ("1", "Gabriel", "Belén", "2012-07-09"),
+        ("1", "Gabriel", "Belén", "1998-12-09"),
+        ("23", "Rodrigo", "Belén", "2015-12-12"),
+        ("23", "Rodrigo", "Belén", "2012-07-09"),
+        ("23", "Rodrigo", "Belén", "1998-12-09"),
+        ("12", "Mercedes", "Las Juntas", "2015-12-12"),
+        ("12", "Mercedes", "Las Juntas", "2012-07-09"),
+        ("12", "Mercedes", "Las Juntas", "1998-12-09"),
+        ("2", "Diego", "Santiago del Estero", "2015-12-12"),
+        ("2", "Diego", "Santiago del Estero", "2012-07-09"),
+        ("2", "Diego", "Santiago del Estero", "1998-12-09")
+    }
+    r1, _, r3 = relation_fixture
+    product = r1.product(r3)
+    assert product.cardinality() == 12
+    assert product.degree() == 4
+    assert product.content == expected
+
+
+def test_njoin(relation_fixture):
+
+    r1, r2, _ = relation_fixture
+    expected = {
+        ("1", "Gabriel", "Belén", "Python"),
+        ("12", "Mercedes", "Las Juntas", "Rocas"),
+        ("23", "Rodrigo", "Belén", "Games")
+    }
+    r3 = r1.njoin(r2)
+    assert r3.degree() == 4
+    assert r3.content == expected
+    assert r3.cardinality() == 3
+
+
+def test_louter(relation_fixture):
+    r1, r2, _ = relation_fixture
+    expected = {
+        ("1", "Gabriel", "Belén", "Python"),
+        ("23", "Rodrigo", "Belén", "Games"),
+        ("12", "Mercedes", "Las Juntas", "Rocas"),
+        ("2", "Diego", "Santiago del Estero", "null")
+    }
+    r = r1.louter(r2)
+    assert r.degree() == 4
+    assert r.cardinality() == 4
+    assert r.content == expected
+
+
+def test_router(relation_fixture):
+    r1, r2, _ = relation_fixture
+    expected = {
+        ("3", "null", "null", "Ruby"),
+        ("1", "Gabriel", "Belén", "Python"),
+        ("12", "Mercedes", "Las Juntas", "Rocas"),
+        ("23", "Rodrigo", "Belén", "Games")
+    }
+
+    r = r1.router(r2)
+    assert r.degree() == 4
+    assert r.cardinality() == 4
+    assert r.content == expected
+
+
+def test_relation_compatible(relation_fixture):
+    r1, r2, _ = relation_fixture
+    with pytest.raises(relation.UnionCompatibleError):
+        r1.intersect(r2)
+
+
+def test_fouther(relation_fixture):
+    r1, r2, _ = relation_fixture
+    expected = {
+        ("1", "Gabriel", "Belén", "Python"),
+        ("23", "Rodrigo", "Belén", "Games"),
+        ("12", "Mercedes", "Las Juntas", "Rocas"),
+        ("2", "Diego", "Santiago del Estero", "null"),
+        ("3", "null", "null", "Ruby")
+    }
+
+    r = r1.fouter(r2)
+    assert r.degree() == 4
+    assert r.cardinality() == 5
+    assert r.content == expected
+
+
+def test_difference(qtbot):
+    r = relation.Relation()
+    r.header = ["patente"]
+    data = {
+        ("ass-002",), ("dde-456",), ("agt-303",),
+        ("tsv-360",), ("k-23526",), ("cdd-479",),
+        ("cdt-504",), ("exs-900",), ("beo-825",),
+        ("afs-448",), ("fvj-530",), ("fvv-120",),
+        ("gaa-589",)
+    }
+    for i in data:
+        r.insert(i)
+    r2 = relation.Relation()
+    r2.header = ["patente"]
+    data = {
+        ("dde-456",), ("dde-456",), ("beo-825",),
+        ("k-23526",), ("gaa-589",), ("ass-002",),
+        ("ass-002",), ("fvj-530",), ("tsv-360",),
+        ("tsv-360",), ("cdt-504",), ("cdt-504",)
+    }
+    for i in data:
+        r2.insert(i)
+    expected = {
+        ("agt-303",), ("cdd-479",), ("exs-900",),
+        ("afs-448",), ("fvv-120",)
+    }
+    assert r.cardinality() == 13
+    new = r.difference(r2)
+    assert new.content == expected
+    assert new.cardinality() == 5

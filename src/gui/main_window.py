@@ -24,20 +24,25 @@ from collections import Callable
 
 from PyQt5.QtWidgets import (
     QMainWindow,
+    QMenu,
+    QToolButton,
     QMessageBox,
     QToolBar
 )
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import (
-    QSettings,
-    QSize
-)
+
+from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import QSize
+from PyQt5.QtCore import Qt
+
 from src import keymap
 from src.core import settings
 from src.gui import (
     menu_actions,
-    message_error
+    # message_error
 )
+
+from src.core.settings import CONFIG
 
 
 class Pireal(QMainWindow):
@@ -59,16 +64,25 @@ class Pireal(QMainWindow):
         '',  # Is a separator!
         'new_query',
         'open_query',
+        'save_query',
         '',
-        'create_new_relation',
-        'remove_relation',
+        'relation_menu',
+        '',
+        # 'create_new_relation',
+        # 'remove_relation',
+        # '',
+        # 'add_tuple',
+        # 'delete_tuple',
+        # 'add_column',
+        # 'delete_column',
+        # '',
+        'execute_queries'
     ]
 
     def __init__(self):
         QMainWindow.__init__(self)
         self.setWindowTitle(self.tr("Pireal"))
         self.setMinimumSize(880, 600)
-
         # Load window geometry
         qsettings = QSettings(settings.SETTINGS_PATH, QSettings.IniFormat)
         window_maximized = qsettings.value('window_max', True, type=bool)
@@ -81,9 +95,10 @@ class Pireal(QMainWindow):
             self.move(position)
         # Toolbar
         self.toolbar = QToolBar(self)
-        self.toolbar.setIconSize(QSize(22, 22))
+        self.toolbar.setFixedWidth(38)
+        self.toolbar.setIconSize(QSize(38, 38))
         self.toolbar.setMovable(False)
-        self.addToolBar(self.toolbar)
+        self.addToolBar(Qt.RightToolBarArea, self.toolbar)
 
         # Menu bar
         menubar = self.menuBar()
@@ -92,7 +107,7 @@ class Pireal(QMainWindow):
         notification_widget = Pireal.get_service("notification")
         self.toolbar.addWidget(notification_widget)
         # Message error
-        self._msg_error_widget = message_error.MessageError(self)
+        # self._msg_error_widget = message_error.MessageError(self)
         # Central widget
         central_widget = Pireal.get_service("central")
         central_widget.databaseSaved.connect(notification_widget.show_text)
@@ -136,12 +151,11 @@ class Pireal(QMainWindow):
 
         # Keymap
         kmap = keymap.KEYMAP
-        # Toolbar items
-        toolbar_items = {}
 
         central = Pireal.get_service("central")
 
         # Load menu bar
+        rela_actions = []
         for item in menu_actions.MENU:
             menubar_item = menu_actions.MENU[item]
             menu_name = menubar_item['name']
@@ -167,29 +181,38 @@ class Pireal(QMainWindow):
                     if shortcut is not None:
                         qaction.setShortcut(shortcut)
 
-                    # Items for toolbar
-                    if connection in Pireal.TOOLBAR_ITEMS:
-                        toolbar_items[connection] = qaction
-
                     # The name of QAction is the connection
+                    if item == "relation":
+                        if connection != "execute_queries":
+                            rela_actions.append(qaction)
                     Pireal.load_action(connection, qaction)
                     slot = getattr(obj, connection, None)
                     if isinstance(slot, Callable):
                         qaction.triggered.connect(slot)
 
         # Install toolbar
-        self.__install_toolbar(toolbar_items)
+        # self.__install_toolbar(toolbar_items, rela_actions)
+        self.__install_toolbar(rela_actions)
         # Disable some actions
         self.set_enabled_db_actions(False)
         self.set_enabled_relation_actions(False)
         self.set_enabled_query_actions(False)
         self.set_enabled_editor_actions(False)
 
-    def __install_toolbar(self, toolbar_items):
-        for action in Pireal.TOOLBAR_ITEMS:
-            qaction = toolbar_items.get(action, None)
-            if qaction is not None:
-                self.toolbar.addAction(qaction)
+    def __install_toolbar(self, rela_actions):
+        menu = QMenu()
+        tool_button = QToolButton()
+        tool_button.setIcon(QIcon(":img/create_new_relation"))
+        tool_button.setMenu(menu)
+        tool_button.setPopupMode(QToolButton.InstantPopup)
+        for item in self.TOOLBAR_ITEMS:
+            if item:
+                if item == "relation_menu":
+                    # Install menu for relation
+                    menu.addActions(rela_actions)
+                    self.toolbar.addWidget(tool_button)
+                else:
+                    self.toolbar.addAction(self.__ACTIONS[item])
             else:
                 self.toolbar.addSeparator()
 
@@ -252,8 +275,8 @@ class Pireal(QMainWindow):
             'remove_relation',
             'add_tuple',
             'delete_tuple',
-            'add_column',
-            'delete_column'
+            # 'add_column',
+            # 'delete_column'
         ]
 
         for action in actions:
@@ -284,7 +307,8 @@ class Pireal(QMainWindow):
             'zoom_in',
             'zoom_out',
             'comment',
-            'uncomment'
+            'uncomment',
+            'search'
         ]
 
         for action in actions:
@@ -328,9 +352,20 @@ class Pireal(QMainWindow):
         self._msg_error_widget.show_msg(text, syntax_error)
         self._msg_error_widget.show()
 
+    def save_user_settings(self):
+        central_widget = Pireal.get_service("central")
+        CONFIG.set_value("lastOpenFolder", central_widget.last_open_folder)
+        CONFIG.set_value("recentFiles", central_widget.recent_databases)
+
+        # Write settings
+        CONFIG.save_settings()
+
     def closeEvent(self, event):
+        self.save_user_settings()
+
+        # Qt settings
         qsettings = QSettings(settings.SETTINGS_PATH, QSettings.IniFormat)
-        # Save window geometry
+        # # Save window geometry
         if self.isMaximized():
             qsettings.setValue('window_max', True)
         else:
@@ -339,12 +374,6 @@ class Pireal(QMainWindow):
             qsettings.setValue('window_size', self.size())
 
         central_widget = Pireal.get_service("central")
-        # Save recent databases
-        qsettings.setValue('recent_databases',
-                           central_widget.recent_databases)
-        # Última carpeta accedida
-        qsettings.setValue('last_open_folder',
-                           central_widget.last_open_folder)
         db = central_widget.get_active_db()
         if db is not None:
             # Save splitters size
@@ -353,14 +382,14 @@ class Pireal(QMainWindow):
             if db.modified:
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Question)
-                msg.setWindowTitle(self.tr("Some changes were not saved"))
+                msg.setWindowTitle(self.tr("Algunos cambios no fueron guardados"))
                 msg.setText(
-                    self.tr("Do you want to save changes to the database?"))
-                cancel_btn = msg.addButton(self.tr("Cancel"),
+                    self.tr("Desea guardar los cambios en la base de datos?"))
+                cancel_btn = msg.addButton(self.tr("Cancelar"),
                                            QMessageBox.RejectRole)
                 msg.addButton(self.tr("No"),
                               QMessageBox.NoRole)
-                yes_btn = msg.addButton(self.tr("Yes"),
+                yes_btn = msg.addButton(self.tr("Si"),
                                         QMessageBox.YesRole)
                 msg.exec_()
                 r = msg.clickedButton()
@@ -373,15 +402,15 @@ class Pireal(QMainWindow):
             if unsaved_editors:
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Question)
-                msg.setWindowTitle(self.tr("Unsaved Queries"))
+                msg.setWindowTitle(self.tr("Consultas no guardadas"))
                 text = '\n'.join([editor.name for editor in unsaved_editors])
-                msg.setText(self.tr("{files}\n\nDo you want to "
-                                    "save them?".format(files=text)))
-                cancel_btn = msg.addButton(self.tr("Cancel"),
+                msg.setText(self.tr("{files}\n\nQuiere guardarlas?".format(
+                    files=text)))
+                cancel_btn = msg.addButton(self.tr("Cancelar"),
                                            QMessageBox.RejectRole)
                 msg.addButton(self.tr("No"),
                               QMessageBox.NoRole)
-                yes_btn = msg.addButton(self.tr("Yes"),
+                yes_btn = msg.addButton(self.tr("Si"),
                                         QMessageBox.YesRole)
                 msg.exec_()
                 if msg.clickedButton() == yes_btn:
